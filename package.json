@@ -1,0 +1,9 @@
+{
+  "name": "bp-service-contracts",
+  "version": "1.0.0",
+  "description": "TV Windows – Live Service Contracts Dashboard (Netlify)",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}
