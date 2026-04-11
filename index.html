@@ -8,145 +8,39 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #333; }
-
-    /* ── Header ── */
-    .header {
-      background: #527F6E;
-      color: #fff;
-      padding: 14px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    .header { background: #527F6E; color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
     .header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.3px; }
     .header-right { display: flex; align-items: center; gap: 12px; }
     .last-updated { font-size: 0.78rem; opacity: 0.85; }
-    .btn-refresh {
-      background: #fff;
-      color: #527F6E;
-      border: none;
-      padding: 7px 16px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
+    .btn-refresh { background: #fff; color: #527F6E; border: none; padding: 7px 16px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
     .btn-refresh:hover { opacity: 0.85; }
-
-    /* ── Content ── */
     .content { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
-
-    /* ── KPI cards ── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .kpi-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 20px 22px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      border-left: 5px solid #ccc;
-    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .kpi-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 5px solid #ccc; }
     .kpi-card.green  { border-left-color: #28a745; }
     .kpi-card.blue   { border-left-color: #17a2b8; }
     .kpi-card.orange { border-left-color: #fd7e14; }
     .kpi-card.purple { border-left-color: #6f42c1; }
-    .kpi-label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #888;
-      letter-spacing: 0.6px;
-      margin-bottom: 6px;
-    }
+    .kpi-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 6px; }
     .kpi-value { font-size: 2rem; font-weight: 700; color: #1a1a1a; line-height: 1.1; }
     .kpi-sub   { font-size: 0.78rem; color: #999; margin-top: 4px; }
-
-    /* ── Charts row ── */
-    .charts-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .chart-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 20px 22px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-    .chart-card h2 {
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #888;
-      letter-spacing: 0.6px;
-      margin-bottom: 16px;
-    }
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .chart-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .chart-card h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 16px; }
     .chart-wrap { position: relative; height: 280px; }
-
-    /* ── Status age breakdown table ── */
-    .table-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 20px 22px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
-    }
-    .table-card h2 {
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #888;
-      letter-spacing: 0.6px;
-      margin-bottom: 14px;
-    }
+    .table-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .table-card h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 14px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    thead th {
-      text-align: left;
-      padding: 8px 12px;
-      background: #f8f9fa;
-      font-weight: 700;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      color: #666;
-      border-bottom: 1px solid #e9ecef;
-    }
+    thead th { text-align: left; padding: 8px 12px; background: #f8f9fa; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; color: #666; border-bottom: 1px solid #e9ecef; }
     tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover { background: #fafafa; }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 0.72rem;
-      font-weight: 700;
-    }
-    .badge-fresh  { background: #d4edda; color: #155724; }
-    .badge-warn   { background: #fff3cd; color: #856404; }
-    .badge-overdue{ background: #f8d7da; color: #721c24; }
-
-    /* ── Loading / error ── */
-    .overlay {
-      position: fixed; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(240,242,245,0.9);
-      z-index: 100;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .spinner {
-      width: 40px; height: 40px;
-      border: 4px solid #ddd;
-      border-top-color: #527F6E;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; }
+    .badge-fresh   { background: #d4edda; color: #155724; }
+    .badge-warn    { background: #fff3cd; color: #856404; }
+    .badge-overdue { background: #f8d7da; color: #721c24; }
+    .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(240,242,245,0.9); z-index: 100; flex-direction: column; gap: 12px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: #527F6E; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .overlay-text { font-size: 0.9rem; color: #555; }
     .overlay.hidden { display: none; }
@@ -154,12 +48,10 @@
   </style>
 </head>
 <body>
-
 <div class="overlay" id="overlay">
   <div class="spinner"></div>
   <div class="overlay-text">Loading contracts…</div>
 </div>
-
 <div class="header">
   <h1>TV Windows – Live Service Contracts Dashboard</h1>
   <div class="header-right">
@@ -167,10 +59,7 @@
     <button class="btn-refresh" id="btnRefresh">↻ Refresh</button>
   </div>
 </div>
-
 <div class="content">
-
-  <!-- KPI row -->
   <div class="kpi-grid">
     <div class="kpi-card green">
       <div class="kpi-label">Total Contracts</div>
@@ -193,8 +82,6 @@
       <div class="kpi-sub">Mean net value</div>
     </div>
   </div>
-
-  <!-- Charts row -->
   <div class="charts-row">
     <div class="chart-card">
       <h2>Jobs by Contract Status</h2>
@@ -205,8 +92,6 @@
       <div class="chart-wrap"><canvas id="chartProduct"></canvas></div>
     </div>
   </div>
-
-  <!-- Status age breakdown -->
   <div class="table-card">
     <h2>Contract Status Age Breakdown</h2>
     <table>
@@ -218,146 +103,62 @@
           <th>Product Type</th>
           <th>Status Date</th>
           <th>Age (days)</th>
-          <th>Freshness</th>
+          <th>Age</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
   </div>
-
 </div>
-
 <script>
-const PALETTE = [
-  '#527F6E','#17a2b8','#fd7e14','#6f42c1','#28a745',
-  '#e83e8c','#20c997','#ffc107','#dc3545','#6c757d',
-  '#007bff','#343a40','#17becf','#bcbd22','#9467bd',
-];
+const PALETTE = ['#527F6E','#17a2b8','#fd7e14','#6f42c1','#28a745','#e83e8c','#20c997','#ffc107','#dc3545','#6c757d','#007bff','#343a40','#17becf','#bcbd22','#9467bd'];
 function colourFor(idx) { return PALETTE[idx % PALETTE.length]; }
 const fmt = v => '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
-let chartStatus = null;
-let chartProduct = null;
-
+let chartStatus = null, chartProduct = null;
 function buildCharts(contracts) {
   const statusCounts = {};
-  contracts.forEach(c => {
-    const s = c.contractStatus || 'Unknown';
-    statusCounts[s] = (statusCounts[s] || 0) + 1;
-  });
+  contracts.forEach(c => { const s = c.contractStatus || 'Unknown'; statusCounts[s] = (statusCounts[s] || 0) + 1; });
   const statusLabels = Object.keys(statusCounts).sort((a,b) => statusCounts[b] - statusCounts[a]);
-  const statusData   = statusLabels.map(l => statusCounts[l]);
-
+  const statusData = statusLabels.map(l => statusCounts[l]);
   if (chartStatus) chartStatus.destroy();
   chartStatus = new Chart(document.getElementById('chartStatus'), {
     type: 'bar',
-    data: {
-      labels: statusLabels,
-      datasets: [{
-        label: 'Contracts',
-        data: statusData,
-        backgroundColor: statusLabels.map((_,i) => colourFor(i)),
-        borderRadius: 4,
-      }],
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} contract${ctx.parsed.x !== 1 ? 's' : ''}` } },
-      },
-      scales: {
-        x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f0f0f0' } },
-        y: { ticks: { font: { size: 12 } } },
-      },
-    },
+    data: { labels: statusLabels, datasets: [{ label: 'Contracts', data: statusData, backgroundColor: statusLabels.map((_,i) => colourFor(i)), borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} contract${ctx.parsed.x !== 1 ? 's' : ''}` } } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f0f0f0' } }, y: { ticks: { font: { size: 12 } } } } }
   });
-
   const prodCounts = {};
-  contracts.forEach(c => {
-    const p = c.productType || 'Unknown';
-    prodCounts[p] = (prodCounts[p] || 0) + 1;
-  });
+  contracts.forEach(c => { const p = c.productType || 'Unknown'; prodCounts[p] = (prodCounts[p] || 0) + 1; });
   const prodLabels = Object.keys(prodCounts).sort((a,b) => prodCounts[b] - prodCounts[a]);
-  const prodData   = prodLabels.map(l => prodCounts[l]);
-
+  const prodData = prodLabels.map(l => prodCounts[l]);
   if (chartProduct) chartProduct.destroy();
   chartProduct = new Chart(document.getElementById('chartProduct'), {
     type: 'doughnut',
-    data: {
-      labels: prodLabels,
-      datasets: [{
-        data: prodData,
-        backgroundColor: prodLabels.map((_,i) => colourFor(i)),
-        borderWidth: 2,
-        borderColor: '#fff',
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 14, padding: 12 } },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const val = ctx.parsed;
-              const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
-              return ` ${val} (${((val/total)*100).toFixed(1)}%)`;
-            }
-          }
-        },
-      },
-    },
+    data: { labels: prodLabels, datasets: [{ data: prodData, backgroundColor: prodLabels.map((_,i) => colourFor(i)), borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 14, padding: 12 } }, tooltip: { callbacks: { label: ctx => { const val = ctx.parsed; const total = ctx.dataset.data.reduce((a,b) => a+b, 0); return ` ${val} (${((val/total)*100).toFixed(1)}%)`; } } } } }
   });
 }
-
 function buildTable(contracts) {
   const now = Date.now();
-  const rows = contracts
-    .filter(c => c.contractStatusDate)
-    .map(c => {
-      const ms  = new Date(c.contractStatusDate).getTime();
-      const age = isNaN(ms) ? null : Math.floor((now - ms) / 86400000);
-      return { ...c, age };
-    })
-    .filter(c => c.age !== null)
-    .sort((a,b) => b.age - a.age);
-
+  const rows = contracts.filter(c => c.contractStatusDate).map(c => { const ms = new Date(c.contractStatusDate).getTime(); const age = isNaN(ms) ? null : Math.floor((now - ms) / 86400000); return { ...c, age }; }).filter(c => c.age !== null).sort((a,b) => b.age - a.age);
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   rows.forEach(c => {
-    const badge =
-      c.age >= 42 ? `<span class="badge badge-overdue">&gt;6 weeks</span>` :
-      c.age >= 21 ? `<span class="badge badge-warn">&gt;3 weeks</span>`    :
-                    `<span class="badge badge-fresh">Fresh</span>`;
-    const dateStr = new Date(c.contractStatusDate).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    const badge = c.age >= 42 ? `<span class="badge badge-overdue">&gt;6 weeks</span>` : c.age >= 21 ? `<span class="badge badge-warn">&gt;3 weeks</span>` : `<span class="badge badge-fresh">Current</span>`;
+    const dateStr = new Date(c.contractStatusDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${escHtml(c.contractNumber)}</td><td>${escHtml(c.customer)}</td><td>${escHtml(c.contractStatus)}</td><td>${escHtml(c.productType)}</td><td>${dateStr}</td><td>${c.age}</td><td>${badge}</td>`;
     tbody.appendChild(tr);
   });
-  if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">No records with status dates found</td></tr>';
-  }
+  if (rows.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">No records with status dates found</td></tr>';
 }
-
-function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
+function escHtml(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function buildKPIs(contracts) {
-  const total    = contracts.length;
-  const netValue = contracts.reduce((s,c) => s + (c.netValue  || 0), 0);
-  const balance  = contracts.reduce((s,c) => s + (c.balance   || 0), 0);
-  const avg      = total > 0 ? netValue / total : 0;
-  document.getElementById('kpiTotal').textContent    = total.toLocaleString('en-GB');
+  const total = contracts.length, netValue = contracts.reduce((s,c) => s + (c.netValue || 0), 0), balance = contracts.reduce((s,c) => s + (c.balance || 0), 0), avg = total > 0 ? netValue / total : 0;
+  document.getElementById('kpiTotal').textContent = total.toLocaleString('en-GB');
   document.getElementById('kpiNetValue').textContent = fmt(netValue);
-  document.getElementById('kpiBalance').textContent  = fmt(balance);
-  document.getElementById('kpiAvg').textContent      = fmt(avg);
+  document.getElementById('kpiBalance').textContent = fmt(balance);
+  document.getElementById('kpiAvg').textContent = fmt(avg);
 }
-
 async function loadData() {
   const overlay = document.getElementById('overlay');
   overlay.classList.remove('hidden');
@@ -367,17 +168,14 @@ async function loadData() {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     const contracts = await res.json();
     if (contracts.error) throw new Error(contracts.error);
-    buildKPIs(contracts);
-    buildCharts(contracts);
-    buildTable(contracts);
+    buildKPIs(contracts); buildCharts(contracts); buildTable(contracts);
     const now = new Date();
-    document.getElementById('lastUpdated').textContent = 'Updated ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    document.getElementById('lastUpdated').textContent = 'Updated ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     overlay.classList.add('hidden');
   } catch (err) {
     overlay.innerHTML = `<div class="error-msg">⚠️ Failed to load data<br><small>${escHtml(err.message)}</small><br><br><button class="btn-refresh" onclick="loadData()" style="background:#527F6E;color:#fff">Retry</button></div>`;
   }
 }
-
 document.getElementById('btnRefresh').addEventListener('click', loadData);
 loadData();
 </script>
