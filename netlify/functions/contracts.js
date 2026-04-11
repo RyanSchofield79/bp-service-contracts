@@ -4,7 +4,7 @@ const https = require('https');
 const BASE_URL  = 'api-zapier.businesspilot.co.uk';
 const PAGE_SIZE = 500;
 
-// ── Low-level HTTPS POST to the BP API ────────────────────────────────────────
+// ── Low-level HTTPS POST to the BP API ────────────────────────────────────────────
 function apiPost(apiKey, endpoint, body) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body);
@@ -37,7 +37,7 @@ function apiPost(apiKey, endpoint, body) {
   });
 }
 
-// ── Fetch all contracts (paginated) ───────────────────────────────────────────
+// ── Fetch all contracts (paginated) ─────────────────────────────────────────────────
 async function fetchAllContracts(apiKey) {
   const fetchFrom = new Date();
   fetchFrom.setFullYear(fetchFrom.getFullYear() - 5);
@@ -53,13 +53,22 @@ async function fetchAllContracts(apiKey) {
       pageSize: PAGE_SIZE,
     });
 
-    const result     = Array.isArray(resp) ? resp[0] : resp;
-    const items      = result.items      || [];
-    const itemCount  = result.itemCount  || 0;
-    const totalPages = Math.ceil(itemCount / PAGE_SIZE);
+    const result    = Array.isArray(resp) ? resp[0] : resp;
+    const items     = result.items     || [];
+    const itemCount = result.itemCount || 0;
+
+    if (items.length === 0) break;  // no items → done
 
     all = all.concat(items);
-    if (page >= totalPages || items.length === 0) break;
+
+    // Three stop conditions:
+    // 1. We received fewer items than requested → this is the last page
+    //    (handles APIs that ignore pageSize and return their own default)
+    // 2. We have collected at least as many items as itemCount says exist
+    // 3. Guard: no more pages possible
+    if (items.length < PAGE_SIZE) break;
+    if (all.length >= itemCount)  break;
+
     page++;
   }
 
@@ -107,7 +116,7 @@ exports.handler = async (event, context) => {
       // Must be in the service pipeline or have service lead type
       if (!pipeline.includes('service') && !type.includes('service')) return false;
 
-      // Exclude completed / cancelled
+      // Exclude completed / cancelled / on hold
       const status = (c.contractStatus || '').toLowerCase().trim();
       if (status === 'completed')  return false;
       if (status === 'cancelled')  return false;
