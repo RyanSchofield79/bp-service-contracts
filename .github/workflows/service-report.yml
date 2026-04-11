@@ -1,0 +1,48 @@
+name: Service Contracts Monthly Report
+
+on:
+  schedule:
+    - cron: '0 7 5 * *'   # 5th of every month at 07:00 UTC
+  workflow_dispatch:        # allow manual runs
+
+jobs:
+  generate-and-send:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install openpyxl
+
+      - name: Generate service contracts report
+        env:
+          BP_API_KEY: ${{ secrets.BP_API_KEY }}
+        run: python fetch_service_report.py
+
+      - name: Get report date
+        id: date
+        run: echo "REPORT_DATE=$(date +'%d %B %Y')" >> $GITHUB_ENV
+
+      - name: Send report by email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.sendgrid.net
+          server_port: 587
+          username: apikey
+          password: ${{ secrets.SENDGRID_API_KEY }}
+          subject: "Live Service Contracts Report — ${{ env.REPORT_DATE }}"
+          to: ${{ secrets.REPORT_RECIPIENTS }}
+          from: Business Pilot Reports <${{ secrets.SENDGRID_FROM_EMAIL }}>
+          body: |
+            Please find attached the Live Service Contracts Report for ${{ env.REPORT_DATE }}.
+
+            This report lists all live service-type contracts created up to the end of the previous
+            month, including contract date, customer, product type, net value, balance, and status.
+          attachments: Service_Report_*.xlsx
