@@ -95,8 +95,8 @@ COL_WIDTHS = [16, 16, 30, 20, 20, 20, 30, 14, 14, 16, 28, 22, 14]
 DATE_FMT = 'DD/MM/YYYY'
 DATETIME_FMT = 'DD/MM/YYYY HH:MM'
 CURRENCY_FMT = '£#,##0.00'
-THREE_WEEKS_DAYS = 21
-SIX_WEEKS_DAYS = 42
+THREE_WEEKS_DAYS = 35
+SIX_WEEKS_DAYS = 63
 
 def style_cell(cell, fill=None, bold=False, color='000000', size=10, h_align='left', border=True, number_format=None):
     cell.font = Font(name='Arial', bold=bold, color=color, size=size)
