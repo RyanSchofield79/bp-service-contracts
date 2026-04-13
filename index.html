@@ -143,7 +143,7 @@ function buildTable(contracts) {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   rows.forEach(c => {
-    const badge = c.age >= 42 ? `<span class="badge badge-overdue">&gt;6 weeks</span>` : c.age >= 21 ? `<span class="badge badge-warn">&gt;3 weeks</span>` : `<span class="badge badge-fresh">Current</span>`;
+    const badge = c.age >= 63 ? `<span class="badge badge-overdue">&gt;9 weeks</span>` : c.age >= 35 ? `<span class="badge badge-warn">&gt;5 weeks</span>` : `<span class="badge badge-fresh">Current</span>`;
     const dateStr = new Date(c.contractStatusDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${escHtml(c.contractNumber)}</td><td>${escHtml(c.customer)}</td><td>${escHtml(c.contractStatus)}</td><td>${escHtml(c.productType)}</td><td>${dateStr}</td><td>${c.age}</td><td>${badge}</td>`;
