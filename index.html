@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TV Windows – Live Service Contracts Dashboard</title>
+  <title>TV Windows – Service Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,20 +14,38 @@
     .last-updated { font-size: 0.78rem; opacity: 0.85; }
     .btn-refresh { background: #fff; color: #527F6E; border: none; padding: 7px 16px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
     .btn-refresh:hover { opacity: 0.85; }
+    .tabs { background: #46705f; display: flex; padding: 0 24px; gap: 2px; }
+    .tab { background: transparent; border: none; color: rgba(255,255,255,0.75); padding: 11px 20px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; font-family: inherit; letter-spacing: 0.3px; }
+    .tab:hover { color: #fff; }
+    .tab.active { color: #fff; background: rgba(255,255,255,0.10); border-bottom-color: #ffc107; }
     .content { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .toolbar label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; }
+    .toolbar select { font-family: inherit; font-size: 0.85rem; padding: 7px 10px; border: 1px solid #d8dce0; border-radius: 4px; background: #fff; color: #333; min-width: 170px; }
+    .note { font-size: 0.76rem; color: #856404; background: #fff3cd; border-radius: 4px; padding: 5px 10px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
     .kpi-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 5px solid #ccc; }
     .kpi-card.green  { border-left-color: #28a745; }
     .kpi-card.blue   { border-left-color: #17a2b8; }
     .kpi-card.orange { border-left-color: #fd7e14; }
     .kpi-card.purple { border-left-color: #6f42c1; }
+    .kpi-card.yellow { border-left-color: #ffc107; }
+    .kpi-card.red    { border-left-color: #dc3545; }
+    .kpi-card.teal   { border-left-color: #527F6E; }
+    .kpi-card.grey   { border-left-color: #6c757d; }
     .kpi-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 6px; }
     .kpi-value { font-size: 2rem; font-weight: 700; color: #1a1a1a; line-height: 1.1; }
     .kpi-sub   { font-size: 0.78rem; color: #999; margin-top: 4px; }
+    .kpi-sub.up   { color: #c0392b; font-weight: 600; }
+    .kpi-sub.down { color: #1e7e34; font-weight: 600; }
     .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .charts-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
     .chart-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .chart-card h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 16px; }
     .chart-wrap { position: relative; height: 280px; }
+    .chart-wrap.tall { height: 320px; }
     .table-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px; }
     .table-card h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 14px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -35,148 +53,581 @@
     tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover { background: #fafafa; }
+    tfoot td { padding: 9px 12px; font-weight: 700; border-top: 2px solid #e9ecef; background: #f8f9fa; }
+    .num { text-align: right; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; }
     .badge-fresh   { background: #d4edda; color: #155724; }
     .badge-warn    { background: #fff3cd; color: #856404; }
     .badge-overdue { background: #f8d7da; color: #721c24; }
+    .badge-open    { background: #cce5ff; color: #004085; }
+    .badge-charge  { background: #e2d9f3; color: #432874; }
+    .badge-warranty{ background: #d1ecf1; color: #0c5460; }
     .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(240,242,245,0.9); z-index: 100; flex-direction: column; gap: 12px; }
     .spinner { width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: #527F6E; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .overlay-text { font-size: 0.9rem; color: #555; }
     .overlay.hidden { display: none; }
-    .error-msg { color: #c0392b; font-size: 0.9rem; text-align: center; max-width: 400px; }
+    .error-msg { color: #c0392b; font-size: 0.9rem; text-align: center; max-width: 460px; }
+    .inline-error { background: #f8d7da; color: #721c24; border-radius: 6px; padding: 14px 16px; font-size: 0.85rem; margin-bottom: 20px; }
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-row, .charts-row.thirds { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 <div class="overlay" id="overlay">
   <div class="spinner"></div>
-  <div class="overlay-text">Loading contracts…</div>
+  <div class="overlay-text">Loading dashboard…</div>
 </div>
+
 <div class="header">
-  <h1>TV Windows – Live Service Contracts Dashboard</h1>
+  <h1>TV Windows – Service Dashboard</h1>
   <div class="header-right">
     <span class="last-updated" id="lastUpdated">–</span>
     <button class="btn-refresh" id="btnRefresh">↻ Refresh</button>
   </div>
 </div>
-<div class="content">
-  <div class="kpi-grid">
-    <div class="kpi-card green">
-      <div class="kpi-label">Total Contracts</div>
-      <div class="kpi-value" id="kpiTotal">–</div>
-      <div class="kpi-sub">Active service contracts</div>
-    </div>
-    <div class="kpi-card blue">
-      <div class="kpi-label">Total Net Value</div>
-      <div class="kpi-value" id="kpiNetValue">–</div>
-      <div class="kpi-sub">Confirmed net sale</div>
-    </div>
-    <div class="kpi-card orange">
-      <div class="kpi-label">Total Balance Due</div>
-      <div class="kpi-value" id="kpiBalance">–</div>
-      <div class="kpi-sub">Outstanding balance</div>
-    </div>
-    <div class="kpi-card purple">
-      <div class="kpi-label">Avg Contract Value</div>
-      <div class="kpi-value" id="kpiAvg">–</div>
-      <div class="kpi-sub">Mean net value</div>
-    </div>
-  </div>
-  <div class="charts-row">
-    <div class="chart-card">
-      <h2>Jobs by Contract Status</h2>
-      <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <h2>Jobs by Product Type</h2>
-      <div class="chart-wrap"><canvas id="chartProduct"></canvas></div>
-    </div>
-  </div>
-  <div class="table-card">
-    <h2>Contract Status Age Breakdown</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Contract #</th>
-          <th>Customer</th>
-          <th>Status</th>
-          <th>Product Type</th>
-          <th>Status Date</th>
-          <th>Age (days)</th>
-          <th>Age</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
+
+<div class="tabs">
+  <button class="tab active" data-panel="panelContracts">Service Contracts</button>
+  <button class="tab" data-panel="panelCalls">Service Calls</button>
+  <button class="tab" data-panel="panelTrends">Trends &amp; YTD</button>
 </div>
+
+<div class="content">
+
+  <!-- ══════════════════ TAB 1 — LIVE SERVICE CONTRACTS ══════════════════ -->
+  <div class="panel active" id="panelContracts">
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">Total Contracts</div>
+        <div class="kpi-value" id="kpiTotal">–</div>
+        <div class="kpi-sub">Active service contracts</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Total Net Value</div>
+        <div class="kpi-value" id="kpiNetValue">–</div>
+        <div class="kpi-sub">Confirmed net sale</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Total Balance Due</div>
+        <div class="kpi-value" id="kpiBalance">–</div>
+        <div class="kpi-sub">Outstanding balance</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Avg Contract Value</div>
+        <div class="kpi-value" id="kpiAvg">–</div>
+        <div class="kpi-sub">Mean net value</div>
+      </div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <h2>Jobs by Contract Status</h2>
+        <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Jobs by Product Type</h2>
+        <div class="chart-wrap"><canvas id="chartProduct"></canvas></div>
+      </div>
+    </div>
+    <div class="table-card">
+      <h2>Contract Status Age Breakdown</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Contract #</th><th>Customer</th><th>Status</th><th>Product Type</th>
+            <th>Status Date</th><th>Age (days)</th><th>Age</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════ TAB 2 — SERVICE CALLS THIS MONTH ══════════════════ -->
+  <div class="panel" id="panelCalls">
+    <div id="callsError"></div>
+    <div class="toolbar">
+      <label for="monthSelect">Month</label>
+      <select id="monthSelect"></select>
+      <span class="note" id="monthNote" style="display:none">Current month – figures are month to date</span>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Calls Raised</div>
+        <div class="kpi-value" id="scRaised">–</div>
+        <div class="kpi-sub" id="scRaisedSub">–</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Closed</div>
+        <div class="kpi-value" id="scClosed">–</div>
+        <div class="kpi-sub" id="scClosedSub">Of calls raised this month</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Still Open</div>
+        <div class="kpi-value" id="scOpen">–</div>
+        <div class="kpi-sub" id="scOpenSub">Awaiting date or booked in</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Monthly Average</div>
+        <div class="kpi-value" id="scAvg">–</div>
+        <div class="kpi-sub" id="scAvgSub">Financial year to date</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card purple">
+        <div class="kpi-label">Chargeable</div>
+        <div class="kpi-value" id="scCharge">–</div>
+        <div class="kpi-sub" id="scChargeSub">On service contracts</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Warranty</div>
+        <div class="kpi-value" id="scWarranty">–</div>
+        <div class="kpi-sub" id="scWarrantySub">Not on a service contract</div>
+      </div>
+      <div class="kpi-card grey">
+        <div class="kpi-label">Warranty : Chargeable</div>
+        <div class="kpi-value" id="scRatio">–</div>
+        <div class="kpi-sub" id="scRatioSub">Ratio for the month</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Open Backlog</div>
+        <div class="kpi-value" id="scBacklog">–</div>
+        <div class="kpi-sub">All open calls, any month</div>
+      </div>
+    </div>
+
+    <div class="charts-row thirds">
+      <div class="chart-card">
+        <h2>Calls by Status</h2>
+        <div class="chart-wrap"><canvas id="chartCallStatus"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Calls by Type</h2>
+        <div class="chart-wrap"><canvas id="chartCallType"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Warranty vs Chargeable</h2>
+        <div class="chart-wrap"><canvas id="chartBilling"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <h2>Service Calls Raised — <span id="callsTableMonth">–</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Contract #</th><th>Customer</th><th>Raised</th><th>Call Type</th>
+            <th>Billing</th><th>Status</th><th>Last Appointment</th><th>Booked For</th>
+          </tr>
+        </thead>
+        <tbody id="callsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════ TAB 3 — TRENDS & YEAR TO DATE ══════════════════ -->
+  <div class="panel" id="panelTrends">
+    <div id="trendsError"></div>
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">FY Running Total</div>
+        <div class="kpi-value" id="fyTotal">–</div>
+        <div class="kpi-sub" id="fyTotalSub">Since 1 April</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">FY Monthly Average</div>
+        <div class="kpi-value" id="fyAvg">–</div>
+        <div class="kpi-sub" id="fyAvgSub">Calls per month</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">FY Chargeable</div>
+        <div class="kpi-value" id="fyCharge">–</div>
+        <div class="kpi-sub" id="fyChargeSub">Share of FY calls</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">FY Warranty</div>
+        <div class="kpi-value" id="fyWarranty">–</div>
+        <div class="kpi-sub" id="fyWarrantySub">Share of FY calls</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h2>Calls Raised by Month — Warranty vs Chargeable</h2>
+        <div class="chart-wrap tall"><canvas id="chartMonthly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Raised vs Closed by Month</h2>
+        <div class="chart-wrap tall"><canvas id="chartRaisedClosed"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <h2>Month by Month</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th><th class="num">Raised</th><th class="num">Closed</th><th class="num">Open</th>
+            <th class="num">Chargeable</th><th class="num">Warranty</th>
+            <th class="num">% Chargeable</th><th class="num">vs Prev Month</th>
+          </tr>
+        </thead>
+        <tbody id="trendsTableBody"></tbody>
+        <tfoot id="trendsTableFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+
 <script>
+/* ═══════════════════════════ shared helpers ═══════════════════════════ */
 const PALETTE = ['#527F6E','#17a2b8','#fd7e14','#6f42c1','#28a745','#e83e8c','#20c997','#ffc107','#dc3545','#6c757d','#007bff','#343a40','#17becf','#bcbd22','#9467bd'];
-function colourFor(idx) { return PALETTE[idx % PALETTE.length]; }
+const colourFor = idx => PALETTE[idx % PALETTE.length];
 const fmt = v => '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-let chartStatus = null, chartProduct = null;
-function buildCharts(contracts) {
+const esc = str => String(str == null ? '' : str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const num = v => Number(v || 0).toLocaleString('en-GB');
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthLabel(key) {
+  const [y, m] = key.split('-');
+  return MONTH_NAMES[Number(m) - 1] + ' ' + y;
+}
+function dateStr(v) {
+  if (!v) return '–';
+  const d = new Date(v);
+  return isNaN(d) ? '–' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function pct(part, whole) { return whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0; }
+
+/* tab switching */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.panel).classList.add('active');
+    // Chart.js needs a nudge when a hidden canvas becomes visible
+    Object.values(charts).forEach(c => { if (c) c.resize(); });
+  });
+});
+
+const charts = {};
+function drawChart(key, canvasId, config) {
+  if (charts[key]) charts[key].destroy();
+  charts[key] = new Chart(document.getElementById(canvasId), config);
+}
+
+/* ═══════════════════════ TAB 1 — service contracts ═══════════════════════ */
+function buildContractCharts(contracts) {
   const statusCounts = {};
   contracts.forEach(c => { const s = c.contractStatus || 'Unknown'; statusCounts[s] = (statusCounts[s] || 0) + 1; });
   const statusLabels = Object.keys(statusCounts).sort((a,b) => statusCounts[b] - statusCounts[a]);
-  const statusData = statusLabels.map(l => statusCounts[l]);
-  if (chartStatus) chartStatus.destroy();
-  chartStatus = new Chart(document.getElementById('chartStatus'), {
+  drawChart('status', 'chartStatus', {
     type: 'bar',
-    data: { labels: statusLabels, datasets: [{ label: 'Contracts', data: statusData, backgroundColor: statusLabels.map((_,i) => colourFor(i)), borderRadius: 4 }] },
+    data: { labels: statusLabels, datasets: [{ label: 'Contracts', data: statusLabels.map(l => statusCounts[l]), backgroundColor: statusLabels.map((_,i) => colourFor(i)), borderRadius: 4 }] },
     options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} contract${ctx.parsed.x !== 1 ? 's' : ''}` } } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f0f0f0' } }, y: { ticks: { font: { size: 12 } } } } }
   });
+
   const prodCounts = {};
   contracts.forEach(c => { const p = c.productType || 'Unknown'; prodCounts[p] = (prodCounts[p] || 0) + 1; });
   const prodLabels = Object.keys(prodCounts).sort((a,b) => prodCounts[b] - prodCounts[a]);
-  const prodData = prodLabels.map(l => prodCounts[l]);
-  if (chartProduct) chartProduct.destroy();
-  chartProduct = new Chart(document.getElementById('chartProduct'), {
+  drawChart('product', 'chartProduct', {
     type: 'doughnut',
-    data: { labels: prodLabels, datasets: [{ data: prodData, backgroundColor: prodLabels.map((_,i) => colourFor(i)), borderWidth: 2, borderColor: '#fff' }] },
+    data: { labels: prodLabels, datasets: [{ data: prodLabels.map(l => prodCounts[l]), backgroundColor: prodLabels.map((_,i) => colourFor(i)), borderWidth: 2, borderColor: '#fff' }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 14, padding: 12 } }, tooltip: { callbacks: { label: ctx => { const val = ctx.parsed; const total = ctx.dataset.data.reduce((a,b) => a+b, 0); return ` ${val} (${((val/total)*100).toFixed(1)}%)`; } } } } }
   });
 }
-function buildTable(contracts) {
+function buildContractTable(contracts) {
   const now = Date.now();
-  const rows = contracts.filter(c => c.contractStatusDate).map(c => { const ms = new Date(c.contractStatusDate).getTime(); const age = isNaN(ms) ? null : Math.floor((now - ms) / 86400000); return { ...c, age }; }).filter(c => c.age !== null).sort((a,b) => b.age - a.age);
+  const rows = contracts.filter(c => c.contractStatusDate)
+    .map(c => { const ms = new Date(c.contractStatusDate).getTime(); return { ...c, age: isNaN(ms) ? null : Math.floor((now - ms) / 86400000) }; })
+    .filter(c => c.age !== null).sort((a,b) => b.age - a.age);
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   rows.forEach(c => {
-    const badge = c.age >= 63 ? `<span class="badge badge-overdue">&gt;9 weeks</span>` : c.age >= 35 ? `<span class="badge badge-warn">&gt;5 weeks</span>` : `<span class="badge badge-fresh">Current</span>`;
-    const dateStr = new Date(c.contractStatusDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const badge = c.age >= 63 ? '<span class="badge badge-overdue">&gt;9 weeks</span>'
+                : c.age >= 35 ? '<span class="badge badge-warn">&gt;5 weeks</span>'
+                              : '<span class="badge badge-fresh">Current</span>';
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${escHtml(c.contractNumber)}</td><td>${escHtml(c.customer)}</td><td>${escHtml(c.contractStatus)}</td><td>${escHtml(c.productType)}</td><td>${dateStr}</td><td>${c.age}</td><td>${badge}</td>`;
+    tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td><td>${esc(c.contractStatus)}</td><td>${esc(c.productType)}</td><td>${dateStr(c.contractStatusDate)}</td><td>${c.age}</td><td>${badge}</td>`;
     tbody.appendChild(tr);
   });
   if (rows.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">No records with status dates found</td></tr>';
 }
-function escHtml(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function buildKPIs(contracts) {
-  const total = contracts.length, netValue = contracts.reduce((s,c) => s + (c.netValue || 0), 0), balance = contracts.reduce((s,c) => s + (c.balance || 0), 0), avg = total > 0 ? netValue / total : 0;
-  document.getElementById('kpiTotal').textContent = total.toLocaleString('en-GB');
+function buildContractKPIs(contracts) {
+  const total = contracts.length;
+  const netValue = contracts.reduce((s,c) => s + (c.netValue || 0), 0);
+  const balance  = contracts.reduce((s,c) => s + (c.balance  || 0), 0);
+  document.getElementById('kpiTotal').textContent    = total.toLocaleString('en-GB');
   document.getElementById('kpiNetValue').textContent = fmt(netValue);
-  document.getElementById('kpiBalance').textContent = fmt(balance);
-  document.getElementById('kpiAvg').textContent = fmt(avg);
+  document.getElementById('kpiBalance').textContent  = fmt(balance);
+  document.getElementById('kpiAvg').textContent      = fmt(total > 0 ? netValue / total : 0);
 }
+
+/* ═══════════════════ TABS 2 & 3 — service calls ═══════════════════ */
+let CALLS = [];        // every call returned by the API
+let MONTH_KEYS = [];   // ascending list of month keys present in the FY window
+let FY_START_KEY = ''; // e.g. "2026-04"
+
+function monthStats(key) {
+  const inMonth   = CALLS.filter(c => c.monthKey === key);
+  const closed    = inMonth.filter(c => c.isClosed).length;
+  const charge    = inMonth.filter(c => c.billing === 'Chargeable').length;
+  return {
+    key,
+    raised:     inMonth.length,
+    closed,
+    open:       inMonth.length - closed,
+    chargeable: charge,
+    warranty:   inMonth.length - charge,
+    calls:      inMonth,
+  };
+}
+function fyMonthKeys() { return MONTH_KEYS.filter(k => k >= FY_START_KEY); }
+
+function buildMonthSelect() {
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = '';
+  [...MONTH_KEYS].reverse().forEach(k => {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = monthLabel(k);
+    sel.appendChild(o);
+  });
+  const nowKey = new Date().toISOString().slice(0, 7);
+  sel.value = MONTH_KEYS.includes(nowKey) ? nowKey : MONTH_KEYS[MONTH_KEYS.length - 1];
+}
+
+function renderCallsTab() {
+  const key = document.getElementById('monthSelect').value;
+  if (!key) return;
+  const nowKey = new Date().toISOString().slice(0, 7);
+  document.getElementById('monthNote').style.display = key === nowKey ? '' : 'none';
+  document.getElementById('callsTableMonth').textContent = monthLabel(key);
+
+  const s = monthStats(key);
+  const idx = MONTH_KEYS.indexOf(key);
+  const prev = idx > 0 ? monthStats(MONTH_KEYS[idx - 1]) : null;
+
+  // FY-to-date average (complete + current month, matching the running total)
+  const fyKeys = fyMonthKeys();
+  const fyCalls = CALLS.filter(c => c.monthKey >= FY_START_KEY);
+  const fyAvg = fyKeys.length ? fyCalls.length / fyKeys.length : 0;
+
+  document.getElementById('scRaised').textContent = num(s.raised);
+  if (prev) {
+    const diff = s.raised - prev.raised;
+    const el = document.getElementById('scRaisedSub');
+    el.textContent = `${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)} vs ${monthLabel(prev.key)} (${num(prev.raised)})`;
+    el.className = 'kpi-sub ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '');
+  } else {
+    document.getElementById('scRaisedSub').textContent = 'No previous month in range';
+  }
+
+  document.getElementById('scClosed').textContent = num(s.closed);
+  document.getElementById('scClosedSub').textContent = `${pct(s.closed, s.raised)}% of calls raised this month`;
+  document.getElementById('scOpen').textContent = num(s.open);
+  document.getElementById('scOpenSub').textContent = `${pct(s.open, s.raised)}% still to close`;
+
+  document.getElementById('scAvg').textContent = fyAvg.toFixed(1);
+  document.getElementById('scAvgSub').textContent = `FY to date · ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'} · ${num(fyCalls.length)} calls`;
+
+  document.getElementById('scCharge').textContent = num(s.chargeable);
+  document.getElementById('scChargeSub').textContent = `${pct(s.chargeable, s.raised)}% of the month`;
+  document.getElementById('scWarranty').textContent = num(s.warranty);
+  document.getElementById('scWarrantySub').textContent = `${pct(s.warranty, s.raised)}% of the month`;
+  document.getElementById('scRatio').textContent = s.chargeable > 0
+    ? (s.warranty / s.chargeable).toFixed(1) + ' : 1'
+    : (s.warranty > 0 ? s.warranty + ' : 0' : '–');
+  document.getElementById('scRatioSub').textContent = `${num(s.warranty)} warranty · ${num(s.chargeable)} chargeable`;
+  document.getElementById('scBacklog').textContent = num(CALLS.filter(c => !c.isClosed).length);
+
+  // charts
+  const byStatus = {}; s.calls.forEach(c => { const k = c.status || 'Unknown'; byStatus[k] = (byStatus[k]||0)+1; });
+  const statusLabels = Object.keys(byStatus).sort((a,b) => byStatus[b] - byStatus[a]);
+  drawChart('callStatus', 'chartCallStatus', {
+    type: 'doughnut',
+    data: { labels: statusLabels, datasets: [{ data: statusLabels.map(l => byStatus[l]), backgroundColor: statusLabels.map((l,i) => /closed|complete/i.test(l) ? '#28a745' : colourFor(i + 1)), borderWidth: 2, borderColor: '#fff' }] },
+    options: doughnutOpts()
+  });
+
+  const byType = {}; s.calls.forEach(c => { const k = c.callType || 'Unknown'; byType[k] = (byType[k]||0)+1; });
+  const typeLabels = Object.keys(byType).sort((a,b) => byType[b] - byType[a]);
+  drawChart('callType', 'chartCallType', {
+    type: 'doughnut',
+    data: { labels: typeLabels, datasets: [{ data: typeLabels.map(l => byType[l]), backgroundColor: typeLabels.map((_,i) => colourFor(i)), borderWidth: 2, borderColor: '#fff' }] },
+    options: doughnutOpts()
+  });
+
+  drawChart('billing', 'chartBilling', {
+    type: 'doughnut',
+    data: { labels: ['Warranty','Chargeable'], datasets: [{ data: [s.warranty, s.chargeable], backgroundColor: ['#ffc107','#6f42c1'], borderWidth: 2, borderColor: '#fff' }] },
+    options: doughnutOpts()
+  });
+
+  // table
+  const tbody = document.getElementById('callsTableBody');
+  tbody.innerHTML = '';
+  const rows = [...s.calls].sort((a,b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+  rows.forEach(c => {
+    const statusBadge = c.isClosed
+      ? `<span class="badge badge-fresh">${esc(c.status || 'Closed')}</span>`
+      : `<span class="badge badge-open">${esc(c.status || 'Open')}</span>`;
+    const billBadge = c.billing === 'Chargeable'
+      ? '<span class="badge badge-charge">Chargeable</span>'
+      : '<span class="badge badge-warranty">Warranty</span>';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td><td>${dateStr(c.dateAdded)}</td><td>${esc(c.callType)}</td><td>${billBadge}</td><td>${statusBadge}</td><td>${dateStr(c.lastAppointment)}</td><td>${esc(c.engineer) || '–'}</td>`;
+    tbody.appendChild(tr);
+  });
+  if (rows.length === 0) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">No service calls raised in this month</td></tr>';
+}
+
+function doughnutOpts() {
+  return { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } }, tooltip: { callbacks: { label: ctx => { const v = ctx.parsed; const t = ctx.dataset.data.reduce((a,b) => a+b, 0); return ` ${v} (${t ? ((v/t)*100).toFixed(1) : 0}%)`; } } } } };
+}
+
+function renderTrendsTab() {
+  const fyKeys = fyMonthKeys();
+  const stats  = fyKeys.map(monthStats);
+  const fyTotal = stats.reduce((s,m) => s + m.raised, 0);
+  const fyCharge = stats.reduce((s,m) => s + m.chargeable, 0);
+  const fyWarranty = fyTotal - fyCharge;
+
+  document.getElementById('fyTotal').textContent = num(fyTotal);
+  document.getElementById('fyTotalSub').textContent = `Since 1 April · ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'}`;
+  document.getElementById('fyAvg').textContent = fyKeys.length ? (fyTotal / fyKeys.length).toFixed(1) : '–';
+  document.getElementById('fyAvgSub').textContent = 'Calls raised per month';
+  document.getElementById('fyCharge').textContent = num(fyCharge);
+  document.getElementById('fyChargeSub').textContent = `${pct(fyCharge, fyTotal)}% of FY calls`;
+  document.getElementById('fyWarranty').textContent = num(fyWarranty);
+  document.getElementById('fyWarrantySub').textContent = `${pct(fyWarranty, fyTotal)}% of FY calls`;
+
+  // full window (previous FY + this FY) for the trend charts
+  const allStats = MONTH_KEYS.map(monthStats);
+  const labels = MONTH_KEYS.map(monthLabel);
+
+  drawChart('monthly', 'chartMonthly', {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Warranty',   data: allStats.map(m => m.warranty),   backgroundColor: '#ffc107', borderRadius: 3, stack: 'a' },
+      { label: 'Chargeable', data: allStats.map(m => m.chargeable), backgroundColor: '#6f42c1', borderRadius: 3, stack: 'a' },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } } },
+      scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 60, minRotation: 45 } },
+                y: { stacked: true, beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0 } } } }
+  });
+
+  drawChart('raisedClosed', 'chartRaisedClosed', {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Raised', data: allStats.map(m => m.raised), backgroundColor: '#17a2b8', borderRadius: 3 },
+      { label: 'Closed', data: allStats.map(m => m.closed), backgroundColor: '#28a745', borderRadius: 3 },
+      { label: 'FY average', type: 'line', data: MONTH_KEYS.map(k => k >= FY_START_KEY && fyKeys.length ? fyTotal / fyKeys.length : null),
+        borderColor: '#dc3545', borderWidth: 2, borderDash: [6,4], pointRadius: 0, fill: false, spanGaps: true },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } } },
+      scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 60, minRotation: 45 } },
+                y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0 } } } }
+  });
+
+  // month-by-month table (newest first), whole window
+  const tbody = document.getElementById('trendsTableBody');
+  tbody.innerHTML = '';
+  [...allStats].reverse().forEach((m, i, arr) => {
+    const prev = arr[i + 1];
+    let delta = '–';
+    if (prev) {
+      const d = m.raised - prev.raised;
+      const cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
+      delta = `<span class="kpi-sub ${cls}" style="font-size:0.85rem">${d >= 0 ? '▲' : '▼'} ${Math.abs(d)}</span>`;
+    }
+    const inFy = m.key >= FY_START_KEY;
+    const tr = document.createElement('tr');
+    if (inFy) tr.style.background = '#f7fbf9';
+    tr.innerHTML = `<td>${monthLabel(m.key)}${inFy ? '' : ' <span class="kpi-sub" style="font-size:0.7rem">(prev FY)</span>'}</td>`
+      + `<td class="num">${num(m.raised)}</td><td class="num">${num(m.closed)}</td><td class="num">${num(m.open)}</td>`
+      + `<td class="num">${num(m.chargeable)}</td><td class="num">${num(m.warranty)}</td>`
+      + `<td class="num">${pct(m.chargeable, m.raised)}%</td><td class="num">${delta}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const foot = document.getElementById('trendsTableFoot');
+  const totClosed = stats.reduce((s,m) => s + m.closed, 0);
+  foot.innerHTML = `<tr><td>Financial year to date</td><td class="num">${num(fyTotal)}</td><td class="num">${num(totClosed)}</td>`
+    + `<td class="num">${num(fyTotal - totClosed)}</td><td class="num">${num(fyCharge)}</td><td class="num">${num(fyWarranty)}</td>`
+    + `<td class="num">${pct(fyCharge, fyTotal)}%</td><td class="num">–</td></tr>`;
+}
+
+/* ═══════════════════════════ data loading ═══════════════════════════ */
+async function loadContracts() {
+  const res = await fetch('/api/contracts');
+  if (!res.ok) throw new Error(`Contracts API returned ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  buildContractKPIs(data); buildContractCharts(data); buildContractTable(data);
+}
+
+async function loadServiceCalls() {
+  const res = await fetch('/api/service-calls');
+  const data = await res.json().catch(() => ({ error: `Service calls API returned ${res.status}` }));
+  if (!res.ok || data.error) throw new Error(data.error || `Service calls API returned ${res.status}`);
+
+  CALLS = data.calls || [];
+  FY_START_KEY = (data.fyStart || '').slice(0, 7);
+  MONTH_KEYS = [...new Set(CALLS.map(c => c.monthKey).filter(Boolean))].sort();
+
+  // Make sure every month in the window appears, even with zero calls
+  if (data.rangeFrom) {
+    const start = new Date(data.rangeFrom);
+    const end = new Date();
+    const keys = [];
+    for (let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+         d <= end;
+         d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))) {
+      keys.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2,'0')}`);
+    }
+    MONTH_KEYS = [...new Set([...keys, ...MONTH_KEYS])].sort();
+  }
+
+  buildMonthSelect();
+  renderCallsTab();
+  renderTrendsTab();
+}
+
+function showPanelError(id, msg) {
+  document.getElementById(id).innerHTML = `<div class="inline-error"><strong>Could not load service calls.</strong><br>${esc(msg)}</div>`;
+}
+
 async function loadData() {
   const overlay = document.getElementById('overlay');
   overlay.classList.remove('hidden');
-  overlay.innerHTML = '<div class="spinner"></div><div class="overlay-text">Loading contracts…</div>';
-  try {
-    const res = await fetch('/api/contracts');
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    const contracts = await res.json();
-    if (contracts.error) throw new Error(contracts.error);
-    buildKPIs(contracts); buildCharts(contracts); buildTable(contracts);
-    const now = new Date();
-    document.getElementById('lastUpdated').textContent = 'Updated ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    overlay.classList.add('hidden');
-  } catch (err) {
-    overlay.innerHTML = `<div class="error-msg">⚠️ Failed to load data<br><small>${escHtml(err.message)}</small><br><br><button class="btn-refresh" onclick="loadData()" style="background:#527F6E;color:#fff">Retry</button></div>`;
+  overlay.innerHTML = '<div class="spinner"></div><div class="overlay-text">Loading dashboard…</div>';
+  document.getElementById('callsError').innerHTML = '';
+  document.getElementById('trendsError').innerHTML = '';
+
+  const results = await Promise.allSettled([loadContracts(), loadServiceCalls()]);
+
+  if (results[0].status === 'rejected') {
+    overlay.innerHTML = `<div class="error-msg">⚠️ Failed to load contract data<br><small>${esc(results[0].reason.message)}</small><br><br><button class="btn-refresh" onclick="loadData()" style="background:#527F6E;color:#fff">Retry</button></div>`;
+    return;
   }
+  if (results[1].status === 'rejected') {
+    showPanelError('callsError',  results[1].reason.message);
+    showPanelError('trendsError', results[1].reason.message);
+  }
+
+  document.getElementById('lastUpdated').textContent = 'Data as at: ' + new Date().toLocaleString('en-GB');
+  overlay.classList.add('hidden');
 }
+
 document.getElementById('btnRefresh').addEventListener('click', loadData);
+document.getElementById('monthSelect').addEventListener('change', renderCallsTab);
 loadData();
 </script>
 </body>
