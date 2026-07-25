@@ -89,13 +89,21 @@ function addMonths(d, n) {
 // One request for the whole range; if the API returns fewer rows than it says
 // exist, fall back to one request per calendar month and merge.
 async function fetchServiceCalls(apiKey, fromDate, toDate) {
+  const inRange = (c) => {
+    if (!c.dateAdded) return false;
+    const d = new Date(c.dateAdded);
+    return d >= fromDate && d < toDate;
+  };
+
   const whole = unwrap(await apiPost(apiKey, '/ServiceCalls/find', {
     dateAddedAfter:  fromDate.toISOString(),
     dateAddedBefore: toDate.toISOString(),
   }));
 
+  // NOTE: the live API currently ignores dateAddedAfter / dateAddedBefore and
+  // returns the whole history, so the range is always re-applied here.
   if (whole.items.length >= whole.itemCount) {
-    return { items: whole.items, windowed: false };
+    return { items: whole.items.filter(inRange), windowed: false, fetched: whole.items.length };
   }
 
   // Truncated → walk month by month (in parallel, a few at a time).
@@ -119,11 +127,12 @@ async function fetchServiceCalls(apiKey, fromDate, toDate) {
     parts.forEach(p => unwrap(p).items.forEach(c => byId.set(c.id, c)));
   }
 
-  return { items: [...byId.values()], windowed: true };
+  const all = [...byId.values()];
+  return { items: all.filter(inRange), windowed: true, fetched: all.length };
 }
 
 // ── Fetch the set of contract numbers that are chargeable service contracts ──
-async function fetchChargeableContractNumbers(apiKey) {
+async function fetchChargeableContractNumbers(apiKey, wantDiag) {
   const fetchFrom = new Date();
   fetchFrom.setUTCFullYear(fetchFrom.getUTCFullYear() - 10);
 
@@ -155,7 +164,36 @@ async function fetchChargeableContractNumbers(apiKey) {
 
   const set = new Set();
   items.forEach(c => { if (c.contractNumber) set.add(String(c.contractNumber).trim()); });
-  return { set, usedFallback, matched: items.length };
+
+  let diag = null;
+  if (wantDiag) {
+    let all = [];
+    try {
+      all = unwrap(await apiPost(apiKey, '/Contracts/find', {
+        dateAddedAfter: fetchFrom.toISOString(),
+      })).items;
+    } catch (e) { diag = { contractsError: e.message }; }
+
+    if (!diag) {
+      const tally = (fn) => {
+        const o = {};
+        all.forEach(c => { const v = fn(c) || '(blank)'; o[v] = (o[v] || 0) + 1; });
+        return Object.fromEntries(Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 40));
+      };
+      const sample = all[0] || {};
+      diag = {
+        contractsFetched: all.length,
+        contractKeys:     Object.keys(sample),
+        leadKeys:         Object.keys(sample.lead || {}),
+        leadTypes:        tally(c => (c.lead || {}).leadType),
+        pipelines:        tally(c => c.currentPipeline),
+        productType1:     tally(c => (c.lead || {}).productType1),
+        sampleContractNumbers: all.slice(0, 5).map(c => c.contractNumber),
+      };
+    }
+  }
+
+  return { set, usedFallback, matched: items.length, diag };
 }
 
 // ── Netlify handler ──────────────────────────────────────────────────────────
@@ -177,7 +215,7 @@ exports.handler = async (event) => {
 
     const [calls, chargeable] = await Promise.all([
       fetchServiceCalls(API_KEY, from, to),
-      fetchChargeableContractNumbers(API_KEY),
+      fetchChargeableContractNumbers(API_KEY, debug),
     ]);
 
     const mapped = calls.items.map(c => {
@@ -215,7 +253,9 @@ exports.handler = async (event) => {
         rangeFrom: from.toISOString(),
         rangeTo: to.toISOString(),
         totalCalls: mapped.length,
+        callsFetchedBeforeRangeFilter: calls.fetched,
         windowedFetch: calls.windowed,
+        contractDiagnostics: chargeable.diag,
         chargeableType: CHARGEABLE_TYPE,
         chargeableContractsMatched: chargeable.matched,
         chargeableUsedFallback: chargeable.usedFallback,
