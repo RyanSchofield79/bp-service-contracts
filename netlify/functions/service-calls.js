@@ -14,12 +14,15 @@
 //
 // Chargeable vs warranty:
 //   A service call is CHARGEABLE when its contract is of the service-contract
-//   type (default "12. Service Contract"); every other call is WARRANTY.
+//   type. In Business Pilot that lead/contract type is named "12 - Service"
+//   (NOT "12. Service Contract"), so the match is normalised: any type that
+//   starts with 12 and mentions "service". Every other call is WARRANTY.
 //
 // Debug probes (read-only, fixed allow-list):
 //   ?debug=1          call-level diagnostics (statuses, call types, by month)
 //   ?debug=leadtypes  the LeadTypes list, so the exact type string is visible
-//   ?debug=contracts  contract-type filter result + leadType/pipeline tallies
+//   ?debug=type       contract-type filter result only (fast)
+//   ?debug=contracts  filter result + full leadType/pipeline tallies (slow)
 // ─────────────────────────────────────────────────────────────────────────────
 const https = require('https');
 
@@ -27,7 +30,7 @@ const BASE_URL = 'open-api.businesspilot.co.uk';
 
 // The contract type that makes a service call chargeable.
 // Override without a code change via the CHARGEABLE_CONTRACT_TYPE env var.
-const CHARGEABLE_TYPE = process.env.CHARGEABLE_CONTRACT_TYPE || '12. Service Contract';
+const CHARGEABLE_TYPE = process.env.CHARGEABLE_CONTRACT_TYPE || '12 - Service';
 
 // Statuses that count as "closed". Everything else counts as open.
 const CLOSED_STATUSES = ['closed', 'cancelled', 'canceled', 'complete', 'completed'];
@@ -110,7 +113,14 @@ async function allServiceCalls(apiKey) {
   return store('calls', { items: r.items, itemCount: r.itemCount });
 }
 
-// ── Contracts (whole history, cached) ────────────────────────────────────────
+// ── Contracts ────────────────────────────────────────────────────────────────
+// Preferred: ask the API for just the service-contract type. That response is
+// small and fast. Only if the filter yields nothing do we pull everything and
+// match locally, which is slow enough to risk the function timeout.
+async function typedContracts(apiKey, type) {
+  const r = unwrap(await apiPost(apiKey, '/Contracts/find', { contractType: type }));
+  return { items: r.items, itemCount: r.itemCount };
+}
 async function allContracts(apiKey) {
   const hit = cached('contracts');
   if (hit) return hit;
@@ -118,21 +128,45 @@ async function allContracts(apiKey) {
   return store('contracts', { items: r.items, itemCount: r.itemCount });
 }
 
-// Contract numbers whose contract is a chargeable service contract.
+// "12 - Service" in BP. Normalise so "12. Service Contract", "12 – Service"
+// and similar all match the same rule.
+function isChargeableType(value) {
+  const t = String(value || '').toLowerCase();
+  return /(^|[^0-9])12([^0-9]|$)/.test(t) && t.includes('service');
+}
 function chargeableSet(contracts) {
-  const target = CHARGEABLE_TYPE.toLowerCase().trim();
   const set = new Set();
   let matched = 0;
   contracts.forEach(c => {
-    const lead = c.lead || {};
-    const t = String(lead.leadType || '').toLowerCase().trim();
-    const p = String(c.currentPipeline || '').toLowerCase().trim();
-    if (t === target || t.includes('service contract') || p.includes('service contract')) {
+    if (isChargeableType((c.lead || {}).leadType)) {
       matched++;
       if (c.contractNumber) set.add(String(c.contractNumber).trim());
     }
   });
   return { set, matched };
+}
+
+// Resolve the chargeable contract-number set, fast path first.
+async function resolveChargeable(apiKey) {
+  const hit = cached('chargeable');
+  if (hit) return hit;
+
+  let source = 'typeFilter';
+  let items  = [];
+  try { items = (await typedContracts(apiKey, CHARGEABLE_TYPE)).items; } catch (e) { items = []; }
+
+  let matched = items.length;
+  let set = new Set();
+  items.forEach(c => { if (c.contractNumber) set.add(String(c.contractNumber).trim()); });
+
+  if (set.size === 0) {
+    source = 'fullScan';
+    const all = await allContracts(apiKey);
+    const r = chargeableSet(all.items);
+    set = r.set; matched = r.matched;
+  }
+
+  return store('chargeable', { set, matched, source });
 }
 
 // ── Netlify handler ──────────────────────────────────────────────────────────
@@ -151,6 +185,19 @@ exports.handler = async (event) => {
         apiPost(API_KEY, '/ProjectTypes/find', {}).catch(e => ({ error: e.message })),
       ]);
       return json(200, { leadTypes: lt, projectTypes: pt });
+    }
+
+    if (debug === 'type') {
+      const type = q.type || CHARGEABLE_TYPE;
+      const r = await typedContracts(API_KEY, type).catch(e => ({ error: e.message, items: [], itemCount: 0 }));
+      return json(200, {
+        typeTried:   type,
+        count:       r.items.length,
+        itemCount:   r.itemCount,
+        error:       r.error || null,
+        sampleNums:  r.items.slice(0, 5).map(c => c.contractNumber),
+        sampleTypes: tally(r.items, c => (c.lead || {}).leadType, 10),
+      });
     }
 
     if (debug === 'contracts') {
@@ -183,12 +230,11 @@ exports.handler = async (event) => {
     const from = addMonths(currentFyStart, -12);
     const to   = addMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), 1);
 
-    const [callsRaw, contractsRaw] = await Promise.all([
+    const [callsRaw, charge] = await Promise.all([
       allServiceCalls(API_KEY),
-      allContracts(API_KEY).catch(() => ({ items: [], itemCount: 0 })),
+      resolveChargeable(API_KEY).catch(e => ({ set: new Set(), matched: 0, source: 'failed: ' + e.message })),
     ]);
-
-    const { set: chargeable, matched } = chargeableSet(contractsRaw.items);
+    const chargeable = charge.set;
 
     const inRange = (c) => {
       if (!c.dateAdded) return false;
@@ -222,11 +268,10 @@ exports.handler = async (event) => {
         callsInHistory:     callsRaw.items.length,
         callsItemCount:     callsRaw.itemCount,
         callsInRange:       mapped.length,
-        contractsFetched:   contractsRaw.items.length,
-        contractsItemCount: contractsRaw.itemCount,
-        chargeableType:     CHARGEABLE_TYPE,
+        chargeableType:      CHARGEABLE_TYPE,
+        chargeableSource:    charge.source,
         chargeableContracts: chargeable.size,
-        matchedByRule:      matched,
+        matchedByRule:       charge.matched,
         statuses:           tally(mapped, c => c.status),
         callTypes:          tally(mapped, c => c.callType),
         billing:            tally(mapped, c => c.billing),
