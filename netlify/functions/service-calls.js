@@ -263,11 +263,13 @@ exports.handler = async (event) => {
         billing:         chargeable.has(numRaw) ? 'Chargeable' : 'Warranty',
         monthKey:        monthKey(new Date(c.dateAdded)),
         inWindow:        inRange(c),
-        // Month the call was CLOSED. BP has no explicit closed-date field, so
-        // dateUpdated is used as the proxy: for a closed call the last update
-        // is the closure. Blank for calls that are still open.
-        closedMonthKey:  (CLOSED_STATUSES.includes(status.toLowerCase()) && c.dateUpdated)
-                           ? monthKey(new Date(c.dateUpdated)) : '',
+        // Month the call was CLOSED. BP exposes no closed-date field, and
+        // dateUpdated comes back empty on this endpoint, so the last
+        // appointment date is used: for a closed call that is the visit that
+        // completed it. Populated on every closed call in the live data.
+        // Blank for calls that are still open.
+        closedMonthKey:  (CLOSED_STATUSES.includes(status.toLowerCase()) && c.lastAppointmentDate)
+                           ? monthKey(new Date(c.lastAppointmentDate)) : '',
       };
     });
 
@@ -293,8 +295,8 @@ exports.handler = async (event) => {
         daysToClose:        (() => {
           const b = { 'negative': 0, '0-7': 0, '8-30': 0, '31-90': 0, '91-365': 0, '365+': 0, 'noDate': 0 };
           mapped.filter(c => c.isClosed).forEach(c => {
-            if (!c.dateUpdated) { b.noDate++; return; }
-            const d = (new Date(c.dateUpdated) - new Date(c.dateAdded)) / 86400000;
+            if (!c.lastAppointment) { b.noDate++; return; }
+            const d = (new Date(c.lastAppointment) - new Date(c.dateAdded)) / 86400000;
             if (d < 0) b.negative++;
             else if (d <= 7) b['0-7']++;
             else if (d <= 30) b['8-30']++;
@@ -304,17 +306,17 @@ exports.handler = async (event) => {
           });
           return b;
         })(),
-        updatedVsAppointment: (() => {
-          const r = { noAppointment: 0, updatedAfterAppt: 0, updatedBeforeAppt: 0, sameDay: 0 };
-          mapped.filter(c => c.isClosed).forEach(c => {
-            if (!c.lastAppointment) { r.noAppointment++; return; }
-            const d = (new Date(c.dateUpdated) - new Date(c.lastAppointment)) / 86400000;
-            if (Math.abs(d) < 1) r.sameDay++;
-            else if (d > 0) r.updatedAfterAppt++;
-            else r.updatedBeforeAppt++;
+        closeMonthVsRaiseMonth: (() => {
+          const r = { sameMonth: 0, laterMonth: 0, earlierMonth: 0, noCloseDate: 0 };
+          mapped.filter(c => c.isClosed && c.inWindow).forEach(c => {
+            if (!c.closedMonthKey) { r.noCloseDate++; return; }
+            if (c.closedMonthKey === c.monthKey) r.sameMonth++;
+            else if (c.closedMonthKey > c.monthKey) r.laterMonth++;
+            else r.earlierMonth++;
           });
           return r;
         })(),
+        dateUpdatedPopulated: mapped.filter(c => c.dateUpdated).length,
       });
     }
 
