@@ -242,7 +242,11 @@ exports.handler = async (event) => {
       return d >= from && d < to;
     };
 
-    const mapped = callsRaw.items.filter(inRange).map(c => {
+    const isOpen = (c) => !CLOSED_STATUSES.includes(String(c.status || '').trim().toLowerCase());
+
+    // Everything inside the reporting window, PLUS every still-open call no
+    // matter how old, so the Open Calls tab shows the true backlog.
+    const mapped = callsRaw.items.filter(c => inRange(c) || (c.dateAdded && isOpen(c))).map(c => {
       const numRaw = String(c.contractNumber || '').trim();
       const status = String(c.status || '').trim();
       return {
@@ -250,6 +254,7 @@ exports.handler = async (event) => {
         contractNumber:  numRaw,
         customer:        String(c.contractName || '').trim(),
         dateAdded:       c.dateAdded || '',
+        dateUpdated:     c.dateUpdated || '',
         status,
         isClosed:        CLOSED_STATUSES.includes(status.toLowerCase()),
         callType:        String(c.callType || '').trim(),
@@ -257,6 +262,12 @@ exports.handler = async (event) => {
         engineer:        String(c.lastAppointmentFor || '').trim(),
         billing:         chargeable.has(numRaw) ? 'Chargeable' : 'Warranty',
         monthKey:        monthKey(new Date(c.dateAdded)),
+        inWindow:        inRange(c),
+        // Month the call was CLOSED. BP has no explicit closed-date field, so
+        // dateUpdated is used as the proxy: for a closed call the last update
+        // is the closure. Blank for calls that are still open.
+        closedMonthKey:  (CLOSED_STATUSES.includes(status.toLowerCase()) && c.dateUpdated)
+                           ? monthKey(new Date(c.dateUpdated)) : '',
       };
     });
 
@@ -267,7 +278,9 @@ exports.handler = async (event) => {
         rangeTo:            to.toISOString(),
         callsInHistory:     callsRaw.items.length,
         callsItemCount:     callsRaw.itemCount,
-        callsInRange:       mapped.length,
+        callsInRange:       mapped.filter(c => c.inWindow).length,
+        openCallsAnyDate:   mapped.filter(c => !c.isClosed).length,
+        openBeforeWindow:   mapped.filter(c => !c.isClosed && !c.inWindow).length,
         chargeableType:      CHARGEABLE_TYPE,
         chargeableSource:    charge.source,
         chargeableContracts: chargeable.size,
@@ -276,6 +289,32 @@ exports.handler = async (event) => {
         callTypes:          tally(mapped, c => c.callType),
         billing:            tally(mapped, c => c.billing),
         byMonth:            tally(mapped, c => c.monthKey, 30),
+        closedByUpdatedMonth: tally(mapped.filter(c => c.isClosed), c => c.closedMonthKey, 30),
+        daysToClose:        (() => {
+          const b = { 'negative': 0, '0-7': 0, '8-30': 0, '31-90': 0, '91-365': 0, '365+': 0, 'noDate': 0 };
+          mapped.filter(c => c.isClosed).forEach(c => {
+            if (!c.dateUpdated) { b.noDate++; return; }
+            const d = (new Date(c.dateUpdated) - new Date(c.dateAdded)) / 86400000;
+            if (d < 0) b.negative++;
+            else if (d <= 7) b['0-7']++;
+            else if (d <= 30) b['8-30']++;
+            else if (d <= 90) b['31-90']++;
+            else if (d <= 365) b['91-365']++;
+            else b['365+']++;
+          });
+          return b;
+        })(),
+        updatedVsAppointment: (() => {
+          const r = { noAppointment: 0, updatedAfterAppt: 0, updatedBeforeAppt: 0, sameDay: 0 };
+          mapped.filter(c => c.isClosed).forEach(c => {
+            if (!c.lastAppointment) { r.noAppointment++; return; }
+            const d = (new Date(c.dateUpdated) - new Date(c.lastAppointment)) / 86400000;
+            if (Math.abs(d) < 1) r.sameDay++;
+            else if (d > 0) r.updatedAfterAppt++;
+            else r.updatedBeforeAppt++;
+          });
+          return r;
+        })(),
       });
     }
 
