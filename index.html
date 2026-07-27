@@ -381,6 +381,27 @@
 /* ═══════════════════════════ shared helpers ═══════════════════════════ */
 const PALETTE = ['#527F6E','#17a2b8','#fd7e14','#6f42c1','#28a745','#e83e8c','#20c997','#ffc107','#dc3545','#6c757d','#007bff','#343a40','#17becf','#bcbd22','#9467bd'];
 const colourFor = idx => PALETTE[idx % PALETTE.length];
+
+/* Service call statuses, in the order a call actually progresses. Anything the
+   API returns that is not listed here is appended alphabetically at the end. */
+const STATUS_ORDER = ['Waiting Date', 'Provisional', 'Booked In', 'Closed'];
+const STATUS_COLOURS = {
+  'Waiting Date': '#fd7e14',   // raised, no date yet
+  'Provisional':  '#ffc107',   // date pencilled in
+  'Booked In':    '#17a2b8',   // firm appointment
+  'Closed':       '#28a745',   // done
+};
+function sortStatuses(labels) {
+  const rank = l => {
+    const i = STATUS_ORDER.findIndex(v => v.toLowerCase() === String(l).toLowerCase());
+    return i === -1 ? STATUS_ORDER.length : i;
+  };
+  return [...labels].sort((a, b) => rank(a) - rank(b) || String(a).localeCompare(String(b)));
+}
+function statusColour(label, idx) {
+  const key = Object.keys(STATUS_COLOURS).find(k => k.toLowerCase() === String(label).toLowerCase());
+  return key ? STATUS_COLOURS[key] : colourFor(idx + 5);
+}
 const fmt = v => '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const esc = str => String(str == null ? '' : str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const num = v => Number(v || 0).toLocaleString('en-GB');
@@ -578,10 +599,10 @@ function renderCallsTab() {
 
   // charts
   const byStatus = {}; s.calls.forEach(c => { const k = c.status || 'Unknown'; byStatus[k] = (byStatus[k]||0)+1; });
-  const statusLabels = Object.keys(byStatus).sort((a,b) => byStatus[b] - byStatus[a]);
+  const statusLabels = sortStatuses(Object.keys(byStatus));
   drawChart('callStatus', 'chartCallStatus', {
     type: 'doughnut',
-    data: { labels: statusLabels, datasets: [{ data: statusLabels.map(l => byStatus[l]), backgroundColor: statusLabels.map((l,i) => /closed|complete/i.test(l) ? '#28a745' : colourFor(i + 1)), borderWidth: 2, borderColor: '#fff' }] },
+    data: { labels: statusLabels, datasets: [{ data: statusLabels.map(l => byStatus[l]), backgroundColor: statusLabels.map(statusColour), borderWidth: 2, borderColor: '#fff' }] },
     options: doughnutOpts()
   });
 
@@ -681,10 +702,10 @@ function renderOpenTab() {
 
   const byStatus = {};
   rows.forEach(c => { const k = c.status || 'Unknown'; byStatus[k] = (byStatus[k] || 0) + 1; });
-  const statusLabels = Object.keys(byStatus).sort((a, b) => byStatus[b] - byStatus[a]);
+  const statusLabels = sortStatuses(Object.keys(byStatus));
   drawChart('openStatus', 'chartOpenStatus', {
     type: 'doughnut',
-    data: { labels: statusLabels, datasets: [{ data: statusLabels.map(l => byStatus[l]), backgroundColor: statusLabels.map((_, i) => colourFor(i + 1)), borderWidth: 2, borderColor: '#fff' }] },
+    data: { labels: statusLabels, datasets: [{ data: statusLabels.map(l => byStatus[l]), backgroundColor: statusLabels.map(statusColour), borderWidth: 2, borderColor: '#fff' }] },
     options: doughnutOpts()
   });
 
