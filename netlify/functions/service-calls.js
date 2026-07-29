@@ -35,10 +35,14 @@ const CHARGEABLE_TYPE = process.env.CHARGEABLE_CONTRACT_TYPE || '12 - Service';
 // Statuses that count as "closed". Everything else counts as open.
 const CLOSED_STATUSES = ['closed', 'cancelled', 'canceled', 'complete', 'completed'];
 
-// Warm-lambda cache — the upstream calls are heavy, so hold results briefly.
-const TTL_MS = 10 * 60 * 1000;
+// Warm-lambda cache. Kept short so a page load returns current data, but not
+// zero: pulling the whole call history takes 8-10s and Netlify allows 10s, so
+// back-to-back requests must not each pay that cost. ?fresh=1 bypasses it.
+const TTL_MS = 60 * 1000;
 const cache = { calls: null, contracts: null };
+let BYPASS = false;
 function cached(key) {
+  if (BYPASS) return null;
   const e = cache[key];
   return e && (Date.now() - e.at) < TTL_MS ? e.value : null;
 }
@@ -176,6 +180,7 @@ exports.handler = async (event) => {
 
   const q     = (event && event.queryStringParameters) || {};
   const debug = q.debug || '';
+  BYPASS = q.fresh === '1';
 
   try {
     // ── targeted read-only probes ────────────────────────────────────────────
