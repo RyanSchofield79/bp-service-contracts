@@ -57,6 +57,25 @@
     tbody tr:hover { background: #fafafa; }
     tfoot td { padding: 9px 12px; font-weight: 700; border-top: 2px solid #e9ecef; background: #f8f9fa; }
     .num { text-align: right; }
+
+    /* ── expandable rows, matching the install pipeline dashboard ───────── */
+    tbody td.expand-col { cursor: pointer; user-select: none; font-weight: 600; }
+    tbody td.expand-col:hover { background: #f6f8f7; }
+    tbody td.expand-col .twirl { display: inline-block; width: 10px; color: #527F6E;
+                                 transition: transform .15s; margin-right: 6px; }
+    tbody tr.expanded td.expand-col .twirl { transform: rotate(90deg); }
+    tbody tr.expanded td { background: #f6f8f7; }
+    tbody tr.sub-row td { padding: 0; background: #fafbfb; border-bottom: 1px solid #e3e6e4; }
+    tbody tr.sub-row:hover td { background: #fafbfb; }
+    .sub-tbl { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .sub-tbl thead th { background: #eef1f0; color: #555; text-align: left; padding: 8px 14px;
+                        font-size: 0.72rem; text-transform: none; letter-spacing: 0; font-weight: 600; }
+    .sub-tbl thead th.num { text-align: right; }
+    .sub-tbl tbody td { padding: 8px 14px; border-bottom: 1px solid #eef0ef; text-align: left; background: transparent; }
+    .sub-tbl tbody td.num { text-align: right; white-space: nowrap; }
+    .sub-tbl tbody tr:last-child td { border-bottom: 0; }
+    .sub-empty { padding: 12px 14px; color: #999; font-size: 0.8rem; }
+
     .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; }
     .badge-fresh   { background: #d4edda; color: #155724; }
     .badge-warn    { background: #fff3cd; color: #856404; }
@@ -94,13 +113,13 @@
 <div class="tabs">
   <button class="tab active" data-panel="panelContracts">Service Contracts</button>
   <button class="tab" data-panel="panelCalls">Service Calls</button>
-  <button class="tab" data-panel="panelOpen">Open Calls</button>
+  <button class="tab" data-panel="panelAll">All Calls</button>
   <button class="tab" data-panel="panelTrends">Trends &amp; YTD</button>
 </div>
 
 <div class="content">
 
-  <!-- ══════════════════ TAB 1 — LIVE SERVICE CONTRACTS ══════════════════ -->
+  <!-- ══════════════ TAB 1 — LIVE SERVICE CONTRACTS ══════════════ -->
   <div class="panel active" id="panelContracts">
     <div class="kpi-grid">
       <div class="kpi-card green">
@@ -135,12 +154,12 @@
       </div>
     </div>
     <div class="table-card">
-      <h2>Contract Status Age Breakdown</h2>
+      <h2>Contract Status Age Breakdown <span style="font-weight:400;color:#aaa;text-transform:none;letter-spacing:0">· click a contract to see its service calls</span></h2>
       <table>
         <thead>
           <tr>
             <th>Contract #</th><th>Customer</th><th>Status</th><th>Product Type</th>
-            <th>Status Date</th><th>Age (days)</th><th>Age</th>
+            <th>Status Date</th><th class="num">Age (days)</th><th>Age</th><th class="num">Calls</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -148,16 +167,17 @@
     </div>
   </div>
 
-  <!-- ══════════════════ TAB 2 — SERVICE CALLS THIS MONTH ══════════════════ -->
+  <!-- ══════════════ TAB 2 — SERVICE CALLS (Service type only) ══════════════ -->
   <div class="panel" id="panelCalls">
     <div id="callsError"></div>
     <div class="toolbar">
-      <label for="monthSelect">Month</label>
-      <select id="monthSelect"></select>
-      <span class="note" id="monthNote" style="display:none">Current month – figures are month to date</span>
+      <label for="scMonthSelect">Month</label>
+      <select id="scMonthSelect"></select>
+      <span class="note">Call type: Service only</span>
+      <span class="note" id="scMonthNote" style="display:none">Current month – figures are month to date</span>
     </div>
 
-    <div class="section-label">Calls raised in <span id="lblMonthA">–</span></div>
+    <div class="section-label">Service calls raised in <span id="scLblA">–</span></div>
     <div class="kpi-grid">
       <div class="kpi-card blue">
         <div class="kpi-label">Calls Raised</div>
@@ -167,148 +187,281 @@
       <div class="kpi-card green">
         <div class="kpi-label">Closed</div>
         <div class="kpi-value" id="scClosed">–</div>
-        <div class="kpi-sub" id="scClosedSub">Of calls raised this month</div>
+        <div class="kpi-sub" id="scClosedSub">–</div>
       </div>
       <div class="kpi-card orange">
         <div class="kpi-label">Still Open</div>
         <div class="kpi-value" id="scOpen">–</div>
-        <div class="kpi-sub" id="scOpenSub">Awaiting date or booked in</div>
+        <div class="kpi-sub" id="scOpenSub">–</div>
       </div>
       <div class="kpi-card teal">
         <div class="kpi-label">Monthly Average</div>
         <div class="kpi-value" id="scAvg">–</div>
-        <div class="kpi-sub" id="scAvgSub">Financial year to date</div>
+        <div class="kpi-sub" id="scAvgSub">–</div>
       </div>
     </div>
 
-    <div class="section-label">Billing mix <span>— of the calls raised in <b id="lblMonthB">–</b></span></div>
+    <div class="section-label">Billing mix <span>— of the calls raised in <b id="scLblB">–</b></span></div>
     <div class="kpi-grid">
       <div class="kpi-card yellow">
         <div class="kpi-label">Warranty</div>
         <div class="kpi-value" id="scWarranty">–</div>
-        <div class="kpi-sub" id="scWarrantySub">Not on a service contract</div>
+        <div class="kpi-sub" id="scWarrantySub">–</div>
       </div>
       <div class="kpi-card purple">
         <div class="kpi-label">Chargeable</div>
         <div class="kpi-value" id="scCharge">–</div>
-        <div class="kpi-sub" id="scChargeSub">On a 12 - Service contract</div>
+        <div class="kpi-sub" id="scChargeSub">–</div>
       </div>
       <div class="kpi-card grey">
         <div class="kpi-label">Warranty : Chargeable</div>
         <div class="kpi-value" id="scRatio">–</div>
-        <div class="kpi-sub" id="scRatioSub">Ratio for the month</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-label">Open Backlog</div>
-        <div class="kpi-value" id="scBacklog">–</div>
-        <div class="kpi-sub" id="scBacklogSub">All open calls, any month</div>
-      </div>
-    </div>
-
-    <div class="section-label">Closed during <span><b id="lblMonthC">–</b> — whenever the call was raised</span></div>
-    <div class="kpi-grid">
-      <div class="kpi-card green">
-        <div class="kpi-label">Closed in Month</div>
-        <div class="kpi-value" id="scClosedAct">–</div>
-        <div class="kpi-sub" id="scClosedActSub">Completed on site this month</div>
-      </div>
-      <div class="kpi-card orange">
-        <div class="kpi-label">From Earlier Months</div>
-        <div class="kpi-value" id="scClosedPrior">–</div>
-        <div class="kpi-sub" id="scClosedPriorSub">Backlog cleared this month</div>
-      </div>
-      <div class="kpi-card teal">
-        <div class="kpi-label">Avg Days to Close</div>
-        <div class="kpi-value" id="scAvgDays">–</div>
-        <div class="kpi-sub" id="scAvgDaysSub">Raised to final visit</div>
+        <div class="kpi-sub" id="scRatioSub">–</div>
       </div>
       <div class="kpi-card blue">
         <div class="kpi-label">Net Backlog Change</div>
         <div class="kpi-value" id="scNet">–</div>
-        <div class="kpi-sub" id="scNetSub">Raised minus closed</div>
+        <div class="kpi-sub" id="scNetSub">–</div>
+      </div>
+    </div>
+
+    <div class="section-label">Closed during <span><b id="scLblC">–</b> — whenever the call was raised</span></div>
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">Closed in Month</div>
+        <div class="kpi-value" id="scClosedAct">–</div>
+        <div class="kpi-sub" id="scClosedActSub">–</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">From Earlier Months</div>
+        <div class="kpi-value" id="scClosedPrior">–</div>
+        <div class="kpi-sub" id="scClosedPriorSub">–</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Avg Days to Close</div>
+        <div class="kpi-value" id="scAvgDays">–</div>
+        <div class="kpi-sub">Raised to final visit</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Closed Same Month</div>
+        <div class="kpi-value" id="scSame">–</div>
+        <div class="kpi-sub" id="scSameSub">–</div>
+      </div>
+    </div>
+
+    <div class="section-label">Open backlog <span>— every Service call still open, any month</span></div>
+    <div class="kpi-grid">
+      <div class="kpi-card red">
+        <div class="kpi-label">Total Open</div>
+        <div class="kpi-value" id="scBkTotal">–</div>
+        <div class="kpi-sub" id="scBkTotalSub">–</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Oldest Call</div>
+        <div class="kpi-value" id="scBkOldest">–</div>
+        <div class="kpi-sub" id="scBkOldestSub">Days since raised</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Average Age</div>
+        <div class="kpi-value" id="scBkAvgAge">–</div>
+        <div class="kpi-sub">Days since raised</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Open Over 30 Days</div>
+        <div class="kpi-value" id="scBkOver30">–</div>
+        <div class="kpi-sub" id="scBkOver30Sub">–</div>
       </div>
     </div>
 
     <div class="charts-row thirds">
       <div class="chart-card">
         <h2>Calls by Status</h2>
-        <div class="chart-wrap"><canvas id="chartCallStatus"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h2>Calls by Type</h2>
-        <div class="chart-wrap"><canvas id="chartCallType"></canvas></div>
+        <div class="chart-wrap"><canvas id="scChartStatus"></canvas></div>
       </div>
       <div class="chart-card">
         <h2>Warranty vs Chargeable</h2>
-        <div class="chart-wrap"><canvas id="chartBilling"></canvas></div>
+        <div class="chart-wrap"><canvas id="scChartMix"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Open Calls by Age</h2>
+        <div class="chart-wrap"><canvas id="scChartAge"></canvas></div>
       </div>
     </div>
 
     <div class="table-card">
-      <h2>Service Calls Raised — <span id="callsTableMonth">–</span></h2>
+      <h2>Service Calls Raised — <span id="scTableMonth">–</span> <span style="font-weight:400;color:#aaa;text-transform:none;letter-spacing:0">· oldest appointment first</span></h2>
       <table>
         <thead>
           <tr>
-            <th>Contract #</th><th>Customer</th><th>Raised</th><th>Call Type</th>
-            <th>Billing</th><th>Status</th><th>Last Appointment</th><th>Booked For</th>
+            <th>Contract #</th><th>Customer</th><th>Raised</th><th>Appointment</th>
+            <th>Billing</th><th>Status</th><th>Booked For</th>
           </tr>
         </thead>
-        <tbody id="callsTableBody"></tbody>
+        <tbody id="scTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="table-card">
+      <h2>Open Service Calls — <span id="scOpenCount">0</span> <span style="font-weight:400;color:#aaa;text-transform:none;letter-spacing:0">· oldest first, all months</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Contract #</th><th>Customer</th><th>Raised</th><th class="num">Age (days)</th>
+            <th>Billing</th><th>Status</th><th>Appointment</th><th>Age</th>
+          </tr>
+        </thead>
+        <tbody id="scOpenBody"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- ══════════════════ TAB 3 — ALL OPEN CALLS ══════════════════ -->
-  <div class="panel" id="panelOpen">
-    <div id="openError"></div>
+  <!-- ══════════════ TAB 3 — ALL CALLS ══════════════ -->
+  <div class="panel" id="panelAll">
+    <div id="allError"></div>
     <div class="toolbar">
-      <label for="openStatusFilter">Status</label>
-      <select id="openStatusFilter"><option value="">All statuses</option></select>
-      <label for="openBillingFilter">Billing</label>
-      <select id="openBillingFilter">
-        <option value="">All</option><option value="Warranty">Warranty</option><option value="Chargeable">Chargeable</option>
-      </select>
-      <label for="openTypeFilter">Call type</label>
-      <select id="openTypeFilter"><option value="">All types</option></select>
-      <span class="note">Oldest calls at the top</span>
+      <label for="acMonthSelect">Month</label>
+      <select id="acMonthSelect"></select>
+      <span class="note">All call types</span>
+      <span class="note" id="acMonthNote" style="display:none">Current month – figures are month to date</span>
     </div>
 
+    <div class="section-label">All calls raised in <span id="acLblA">–</span></div>
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Calls Raised</div>
+        <div class="kpi-value" id="acRaised">–</div>
+        <div class="kpi-sub" id="acRaisedSub">–</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Closed</div>
+        <div class="kpi-value" id="acClosed">–</div>
+        <div class="kpi-sub" id="acClosedSub">–</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Still Open</div>
+        <div class="kpi-value" id="acOpen">–</div>
+        <div class="kpi-sub" id="acOpenSub">–</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Monthly Average</div>
+        <div class="kpi-value" id="acAvg">–</div>
+        <div class="kpi-sub" id="acAvgSub">–</div>
+      </div>
+    </div>
+
+    <div class="section-label">Billing mix <span>— of the calls raised in <b id="acLblB">–</b></span></div>
+    <div class="kpi-grid">
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Warranty</div>
+        <div class="kpi-value" id="acWarranty">–</div>
+        <div class="kpi-sub" id="acWarrantySub">–</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Chargeable</div>
+        <div class="kpi-value" id="acCharge">–</div>
+        <div class="kpi-sub" id="acChargeSub">–</div>
+      </div>
+      <div class="kpi-card grey">
+        <div class="kpi-label">Warranty : Chargeable</div>
+        <div class="kpi-value" id="acRatio">–</div>
+        <div class="kpi-sub" id="acRatioSub">–</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Net Backlog Change</div>
+        <div class="kpi-value" id="acNet">–</div>
+        <div class="kpi-sub" id="acNetSub">–</div>
+      </div>
+    </div>
+
+    <div class="section-label">Closed during <span><b id="acLblC">–</b> — whenever the call was raised</span></div>
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">Closed in Month</div>
+        <div class="kpi-value" id="acClosedAct">–</div>
+        <div class="kpi-sub" id="acClosedActSub">–</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">From Earlier Months</div>
+        <div class="kpi-value" id="acClosedPrior">–</div>
+        <div class="kpi-sub" id="acClosedPriorSub">–</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Avg Days to Close</div>
+        <div class="kpi-value" id="acAvgDays">–</div>
+        <div class="kpi-sub">Raised to final visit</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Closed Same Month</div>
+        <div class="kpi-value" id="acSame">–</div>
+        <div class="kpi-sub" id="acSameSub">–</div>
+      </div>
+    </div>
+
+    <div class="section-label">Open backlog <span>— every call still open, any type, any month</span></div>
     <div class="kpi-grid">
       <div class="kpi-card red">
         <div class="kpi-label">Total Open</div>
-        <div class="kpi-value" id="opTotal">–</div>
-        <div class="kpi-sub" id="opTotalSub">Every call not yet closed</div>
+        <div class="kpi-value" id="acBkTotal">–</div>
+        <div class="kpi-sub" id="acBkTotalSub">–</div>
       </div>
       <div class="kpi-card orange">
         <div class="kpi-label">Oldest Call</div>
-        <div class="kpi-value" id="opOldest">–</div>
-        <div class="kpi-sub" id="opOldestSub">Days since raised</div>
+        <div class="kpi-value" id="acBkOldest">–</div>
+        <div class="kpi-sub" id="acBkOldestSub">Days since raised</div>
       </div>
       <div class="kpi-card yellow">
         <div class="kpi-label">Average Age</div>
-        <div class="kpi-value" id="opAvgAge">–</div>
+        <div class="kpi-value" id="acBkAvgAge">–</div>
         <div class="kpi-sub">Days since raised</div>
       </div>
       <div class="kpi-card purple">
         <div class="kpi-label">Open Over 30 Days</div>
-        <div class="kpi-value" id="opOver30">–</div>
-        <div class="kpi-sub" id="opOver30Sub">Of the open backlog</div>
+        <div class="kpi-value" id="acBkOver30">–</div>
+        <div class="kpi-sub" id="acBkOver30Sub">–</div>
+      </div>
+    </div>
+
+    <div class="charts-row thirds">
+      <div class="chart-card">
+        <h2>Calls by Type</h2>
+        <div class="chart-wrap"><canvas id="acChartType"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Calls by Booked For</h2>
+        <div class="chart-wrap"><canvas id="acChartBooked"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Warranty vs Chargeable</h2>
+        <div class="chart-wrap"><canvas id="acChartMix"></canvas></div>
       </div>
     </div>
 
     <div class="charts-row">
       <div class="chart-card">
-        <h2>Open Calls by Status</h2>
-        <div class="chart-wrap"><canvas id="chartOpenStatus"></canvas></div>
+        <h2>Calls by Status</h2>
+        <div class="chart-wrap"><canvas id="acChartStatus"></canvas></div>
       </div>
       <div class="chart-card">
         <h2>Open Calls by Age</h2>
-        <div class="chart-wrap"><canvas id="chartOpenAge"></canvas></div>
+        <div class="chart-wrap"><canvas id="acChartAge"></canvas></div>
       </div>
     </div>
 
     <div class="table-card">
-      <h2>All Open Service Calls — <span id="openCount">0</span> shown, oldest first</h2>
+      <h2>All Calls Raised — <span id="acTableMonth">–</span> <span style="font-weight:400;color:#aaa;text-transform:none;letter-spacing:0">· oldest appointment first</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Contract #</th><th>Customer</th><th>Raised</th><th>Appointment</th>
+            <th>Call Type</th><th>Billing</th><th>Status</th><th>Booked For</th>
+          </tr>
+        </thead>
+        <tbody id="acTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="table-card">
+      <h2>All Open Calls — <span id="acOpenCount">0</span> <span style="font-weight:400;color:#aaa;text-transform:none;letter-spacing:0">· oldest first, all months</span></h2>
       <table>
         <thead>
           <tr>
@@ -316,14 +469,22 @@
             <th>Call Type</th><th>Billing</th><th>Status</th><th>Appointment</th><th>Age</th>
           </tr>
         </thead>
-        <tbody id="openTableBody"></tbody>
+        <tbody id="acOpenBody"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- ══════════════════ TAB 4 — TRENDS & YEAR TO DATE ══════════════════ -->
+  <!-- ══════════════ TAB 4 — TRENDS & YEAR TO DATE ══════════════ -->
   <div class="panel" id="panelTrends">
     <div id="trendsError"></div>
+    <div class="toolbar">
+      <label for="trendScope">Call types</label>
+      <select id="trendScope">
+        <option value="service">Service only</option>
+        <option value="all">All call types</option>
+      </select>
+    </div>
+
     <div class="kpi-grid">
       <div class="kpi-card blue">
         <div class="kpi-label">FY Running Total</div>
@@ -331,19 +492,19 @@
         <div class="kpi-sub" id="fyTotalSub">Since 1 April</div>
       </div>
       <div class="kpi-card teal">
-        <div class="kpi-label">FY Monthly Average</div>
-        <div class="kpi-value" id="fyAvg">–</div>
-        <div class="kpi-sub" id="fyAvgSub">Calls per month</div>
+        <div class="kpi-label">Avg Raised / Month</div>
+        <div class="kpi-value" id="fyAvgRaised">–</div>
+        <div class="kpi-sub" id="fyAvgRaisedSub">Financial year to date</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Avg Closed / Month</div>
+        <div class="kpi-value" id="fyAvgClosed">–</div>
+        <div class="kpi-sub" id="fyAvgClosedSub">Financial year to date</div>
       </div>
       <div class="kpi-card purple">
         <div class="kpi-label">FY Chargeable</div>
         <div class="kpi-value" id="fyCharge">–</div>
         <div class="kpi-sub" id="fyChargeSub">Share of FY calls</div>
-      </div>
-      <div class="kpi-card yellow">
-        <div class="kpi-label">FY Warranty</div>
-        <div class="kpi-value" id="fyWarranty">–</div>
-        <div class="kpi-sub" id="fyWarrantySub">Share of FY calls</div>
       </div>
     </div>
 
@@ -402,6 +563,7 @@ function statusColour(label, idx) {
   const key = Object.keys(STATUS_COLOURS).find(k => k.toLowerCase() === String(label).toLowerCase());
   return key ? STATUS_COLOURS[key] : colourFor(idx + 5);
 }
+
 const fmt = v => '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const esc = str => String(str == null ? '' : str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const num = v => Number(v || 0).toLocaleString('en-GB');
@@ -416,6 +578,32 @@ function dateStr(v) {
   return isNaN(d) ? '–' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 function pct(part, whole) { return whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0; }
+function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+function ageDays(c) {
+  const ms = new Date(c.dateAdded).getTime();
+  return isNaN(ms) ? null : Math.floor((Date.now() - ms) / 86400000);
+}
+/* Appointment sort key — no appointment sorts last. */
+function apptKey(c) {
+  const t = c.lastAppointment ? new Date(c.lastAppointment).getTime() : NaN;
+  return isNaN(t) ? 9e15 : t;
+}
+/* Keep legends readable: top N categories, remainder rolled into "Other". */
+function topN(counts, n) {
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (entries.length <= n) return entries;
+  const head = entries.slice(0, n);
+  const rest = entries.slice(n).reduce((s, e) => s + e[1], 0);
+  if (rest > 0) head.push(['Other', rest]);
+  return head;
+}
+
+const AGE_BANDS = [
+  { label: '0–7 days',   test: d => d <= 7 },
+  { label: '8–30 days',  test: d => d > 7 && d <= 30 },
+  { label: '31–90 days', test: d => d > 30 && d <= 90 },
+  { label: '91+ days',   test: d => d > 90 },
+];
 
 /* tab switching */
 document.querySelectorAll('.tab').forEach(btn => {
@@ -424,18 +612,25 @@ document.querySelectorAll('.tab').forEach(btn => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.panel).classList.add('active');
-    // Chart.js needs a nudge when a hidden canvas becomes visible
     Object.values(charts).forEach(c => { if (c) c.resize(); });
   });
 });
 
 const charts = {};
 function drawChart(key, canvasId, config) {
+  const cv = document.getElementById(canvasId);
+  if (!cv) return;
   if (charts[key]) charts[key].destroy();
-  charts[key] = new Chart(document.getElementById(canvasId), config);
+  charts[key] = new Chart(cv, config);
+}
+function doughnutOpts() {
+  return { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } }, tooltip: { callbacks: { label: ctx => { const v = ctx.parsed; const t = ctx.dataset.data.reduce((a,b) => a+b, 0); return ` ${v} (${t ? ((v/t)*100).toFixed(1) : 0}%)`; } } } } };
 }
 
-/* ═══════════════════════ TAB 1 — service contracts ═══════════════════════ */
+/* ═══════════════════ TAB 1 — service contracts ═══════════════════ */
+let CONTRACTS = [];
+const expandedContracts = new Set();
+
 function buildContractCharts(contracts) {
   const statusCounts = {};
   contracts.forEach(c => { const s = c.contractStatus || 'Unknown'; statusCounts[s] = (statusCounts[s] || 0) + 1; });
@@ -455,46 +650,114 @@ function buildContractCharts(contracts) {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 14, padding: 12 } }, tooltip: { callbacks: { label: ctx => { const val = ctx.parsed; const total = ctx.dataset.data.reduce((a,b) => a+b, 0); return ` ${val} (${((val/total)*100).toFixed(1)}%)`; } } } } }
   });
 }
-function buildContractTable(contracts) {
+
+/* Every call raised against a contract number, oldest appointment first. */
+function callsForContract(contractNumber) {
+  const key = String(contractNumber || '').trim();
+  if (!key) return [];
+  return CALLS.filter(c => c.contractNumber === key).sort((a, b) => apptKey(a) - apptKey(b));
+}
+
+function buildContractSubTable(contractNumber) {
+  const rows = callsForContract(contractNumber);
+  if (!rows.length) return '<div class="sub-empty">No service calls found for this contract in the current data window.</div>';
+  let h = '<table class="sub-tbl"><thead><tr>'
+    + '<th>Raised</th><th>Appointment</th><th>Call Type</th><th>Billing</th>'
+    + '<th>Status</th><th>Booked For</th><th class="num">Age (days)</th>'
+    + '</tr></thead><tbody>';
+  rows.forEach(c => {
+    const bill = c.billing === 'Chargeable'
+      ? '<span class="badge badge-charge">Chargeable</span>'
+      : '<span class="badge badge-warranty">Warranty</span>';
+    const st = c.isClosed
+      ? `<span class="badge badge-fresh">${esc(c.status || 'Closed')}</span>`
+      : `<span class="badge badge-open">${esc(c.status || 'Open')}</span>`;
+    const age = c.isClosed ? '–' : num(ageDays(c));
+    h += `<tr><td>${dateStr(c.dateAdded)}</td><td>${dateStr(c.lastAppointment)}</td>`
+       + `<td>${esc(c.callType)}</td><td>${bill}</td><td>${st}</td>`
+       + `<td>${esc(c.engineer) || '–'}</td><td class="num">${age}</td></tr>`;
+  });
+  return h + '</tbody></table>';
+}
+
+function buildContractTable() {
   const now = Date.now();
-  const rows = contracts.filter(c => c.contractStatusDate)
+  const rows = CONTRACTS.filter(c => c.contractStatusDate)
     .map(c => { const ms = new Date(c.contractStatusDate).getTime(); return { ...c, age: isNaN(ms) ? null : Math.floor((now - ms) / 86400000) }; })
     .filter(c => c.age !== null).sort((a,b) => b.age - a.age);
+
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">No records with status dates found</td></tr>';
+    return;
+  }
   rows.forEach(c => {
     const badge = c.age >= 63 ? '<span class="badge badge-overdue">&gt;9 weeks</span>'
                 : c.age >= 35 ? '<span class="badge badge-warn">&gt;5 weeks</span>'
                               : '<span class="badge badge-fresh">Current</span>';
+    const isExp = expandedContracts.has(c.contractNumber);
+    const callCount = callsForContract(c.contractNumber).length;
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td><td>${esc(c.contractStatus)}</td><td>${esc(c.productType)}</td><td>${dateStr(c.contractStatusDate)}</td><td>${c.age}</td><td>${badge}</td>`;
+    if (isExp) tr.className = 'expanded';
+    tr.dataset.contract = c.contractNumber;
+    tr.innerHTML = `<td class="expand-col"><span class="twirl">&#x25B6;</span>${esc(c.contractNumber)}</td>`
+      + `<td>${esc(c.customer)}</td><td>${esc(c.contractStatus)}</td><td>${esc(c.productType)}</td>`
+      + `<td>${dateStr(c.contractStatusDate)}</td><td class="num">${c.age}</td><td>${badge}</td>`
+      + `<td class="num">${callCount || '–'}</td>`;
     tbody.appendChild(tr);
+
+    if (isExp) {
+      const sub = document.createElement('tr');
+      sub.className = 'sub-row';
+      sub.innerHTML = `<td colspan="8">${buildContractSubTable(c.contractNumber)}</td>`;
+      tbody.appendChild(sub);
+    }
   });
-  if (rows.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">No records with status dates found</td></tr>';
+
+  tbody.querySelectorAll('tr td.expand-col').forEach(td => {
+    td.addEventListener('click', () => {
+      const n = td.parentElement.dataset.contract;
+      if (expandedContracts.has(n)) expandedContracts.delete(n);
+      else expandedContracts.add(n);
+      buildContractTable();
+    });
+  });
 }
+
 function buildContractKPIs(contracts) {
   const total = contracts.length;
   const netValue = contracts.reduce((s,c) => s + (c.netValue || 0), 0);
   const balance  = contracts.reduce((s,c) => s + (c.balance  || 0), 0);
-  document.getElementById('kpiTotal').textContent    = total.toLocaleString('en-GB');
-  document.getElementById('kpiNetValue').textContent = fmt(netValue);
-  document.getElementById('kpiBalance').textContent  = fmt(balance);
-  document.getElementById('kpiAvg').textContent      = fmt(total > 0 ? netValue / total : 0);
+  setText('kpiTotal', total.toLocaleString('en-GB'));
+  setText('kpiNetValue', fmt(netValue));
+  setText('kpiBalance', fmt(balance));
+  setText('kpiAvg', fmt(total > 0 ? netValue / total : 0));
 }
 
-/* ═══════════════════ TABS 2 & 3 — service calls ═══════════════════ */
+/* ═══════════════════ calls — shared engine ═══════════════════ */
 let CALLS = [];        // every call returned by the API
-let MONTH_KEYS = [];   // ascending list of month keys present in the FY window
+let MONTH_KEYS = [];   // ascending month keys across the reporting window
 let FY_START_KEY = ''; // e.g. "2026-04"
 
-function monthStats(key) {
-  const inMonth = CALLS.filter(c => c.monthKey === key);
+const SERVICE_ONLY = c => c.callType === 'Service';
+const ANY_TYPE     = () => true;
+
+/* The two call panels are identical except for the type filter and the id
+   prefix, so both are driven from one config. */
+const PANELS = [
+  { p: 'sc', filter: SERVICE_ONLY, label: 'Service' },
+  { p: 'ac', filter: ANY_TYPE,     label: 'All' },
+];
+
+function monthStats(key, filter) {
+  const set     = CALLS.filter(filter);
+  const inMonth = set.filter(c => c.monthKey === key);
   const closed  = inMonth.filter(c => c.isClosed).length;
   const charge  = inMonth.filter(c => c.billing === 'Chargeable').length;
 
   // Activity basis: calls CLOSED during this month, whenever they were raised.
-  // Closure date comes from the last appointment (see the API function).
-  const closedThisMonth = CALLS.filter(c => c.closedMonthKey === key);
+  const closedThisMonth = set.filter(c => c.closedMonthKey === key);
   const fromPrior       = closedThisMonth.filter(c => c.monthKey < key);
   const days = closedThisMonth
     .map(c => (new Date(c.lastAppointment) - new Date(c.dateAdded)) / 86400000)
@@ -515,8 +778,8 @@ function monthStats(key) {
 }
 function fyMonthKeys() { return MONTH_KEYS.filter(k => k >= FY_START_KEY); }
 
-function buildMonthSelect() {
-  const sel = document.getElementById('monthSelect');
+function buildMonthSelect(id) {
+  const sel = document.getElementById(id);
   sel.innerHTML = '';
   [...MONTH_KEYS].reverse().forEach(k => {
     const o = document.createElement('option');
@@ -527,103 +790,136 @@ function buildMonthSelect() {
   sel.value = MONTH_KEYS.includes(nowKey) ? nowKey : MONTH_KEYS[MONTH_KEYS.length - 1];
 }
 
-function renderCallsTab() {
-  const key = document.getElementById('monthSelect').value;
+function renderCallsPanel(cfg) {
+  const P = cfg.p;
+  const key = document.getElementById(P + 'MonthSelect').value;
   if (!key) return;
   const nowKey = new Date().toISOString().slice(0, 7);
-  document.getElementById('monthNote').style.display = key === nowKey ? '' : 'none';
-  ['callsTableMonth', 'lblMonthA', 'lblMonthB', 'lblMonthC'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = monthLabel(key);
-  });
+  document.getElementById(P + 'MonthNote').style.display = key === nowKey ? '' : 'none';
+  [P + 'TableMonth', P + 'LblA', P + 'LblB', P + 'LblC'].forEach(id => setText(id, monthLabel(key)));
 
-  const s = monthStats(key);
-  const idx = MONTH_KEYS.indexOf(key);
-  const prev = idx > 0 ? monthStats(MONTH_KEYS[idx - 1]) : null;
+  const set  = CALLS.filter(cfg.filter);
+  const s    = monthStats(key, cfg.filter);
+  const idx  = MONTH_KEYS.indexOf(key);
+  const prev = idx > 0 ? monthStats(MONTH_KEYS[idx - 1], cfg.filter) : null;
 
-  // FY-to-date average (complete + current month, matching the running total)
-  const fyKeys = fyMonthKeys();
-  const fyCalls = CALLS.filter(c => c.monthKey >= FY_START_KEY);
-  const fyAvg = fyKeys.length ? fyCalls.length / fyKeys.length : 0;
+  const fyKeys  = fyMonthKeys();
+  const fyCalls = set.filter(c => c.monthKey >= FY_START_KEY && c.inWindow);
+  const fyAvg   = fyKeys.length ? fyCalls.length / fyKeys.length : 0;
 
-  document.getElementById('scRaised').textContent = num(s.raised);
+  // ── raised in month ──
+  setText(P + 'Raised', num(s.raised));
+  const rSub = document.getElementById(P + 'RaisedSub');
   if (prev) {
     const diff = s.raised - prev.raised;
-    const el = document.getElementById('scRaisedSub');
-    el.textContent = `${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)} vs ${monthLabel(prev.key)} (${num(prev.raised)})`;
-    el.className = 'kpi-sub ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '');
+    rSub.textContent = `${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)} vs ${monthLabel(prev.key)} (${num(prev.raised)})`;
+    rSub.className = 'kpi-sub ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '');
   } else {
-    document.getElementById('scRaisedSub').textContent = 'No previous month in range';
+    rSub.textContent = 'No previous month in range';
   }
+  setText(P + 'Closed', num(s.closed));
+  setText(P + 'ClosedSub', `${pct(s.closed, s.raised)}% of calls raised this month`);
+  setText(P + 'Open', num(s.open));
+  setText(P + 'OpenSub', `${pct(s.open, s.raised)}% still to close`);
+  setText(P + 'Avg', fyAvg.toFixed(1));
+  setText(P + 'AvgSub', `FY to date · ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'} · ${num(fyCalls.length)} calls`);
 
-  document.getElementById('scClosed').textContent = num(s.closed);
-  document.getElementById('scClosedSub').textContent = `${pct(s.closed, s.raised)}% of calls raised this month`;
-  document.getElementById('scOpen').textContent = num(s.open);
-  document.getElementById('scOpenSub').textContent = `${pct(s.open, s.raised)}% still to close`;
-
-  document.getElementById('scAvg').textContent = fyAvg.toFixed(1);
-  document.getElementById('scAvgSub').textContent = `FY to date · ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'} · ${num(fyCalls.length)} calls`;
-
-  document.getElementById('scCharge').textContent = num(s.chargeable);
-  document.getElementById('scChargeSub').textContent = `${pct(s.chargeable, s.raised)}% of the month`;
-  document.getElementById('scWarranty').textContent = num(s.warranty);
-  document.getElementById('scWarrantySub').textContent = `${pct(s.warranty, s.raised)}% of the month`;
-  document.getElementById('scRatio').textContent = s.chargeable > 0
+  // ── billing mix ──
+  setText(P + 'Warranty', num(s.warranty));
+  setText(P + 'WarrantySub', `${pct(s.warranty, s.raised)}% of the month`);
+  setText(P + 'Charge', num(s.chargeable));
+  setText(P + 'ChargeSub', `${pct(s.chargeable, s.raised)}% of the month`);
+  setText(P + 'Ratio', s.chargeable > 0
     ? (s.warranty / s.chargeable).toFixed(1) + ' : 1'
-    : (s.warranty > 0 ? s.warranty + ' : 0' : '–');
-  document.getElementById('scRatioSub').textContent = `${num(s.warranty)} warranty · ${num(s.chargeable)} chargeable`;
-  const backlog = CALLS.filter(c => !c.isClosed);
-  document.getElementById('scBacklog').textContent = num(backlog.length);
-  document.getElementById('scBacklogSub').textContent =
-    `${num(backlog.filter(c => c.monthKey < key).length)} raised before ${monthLabel(key)}`;
-
-  // ── closed during the month, whenever raised ──
-  document.getElementById('scClosedAct').textContent = num(s.closedInMonth);
-  document.getElementById('scClosedActSub').textContent =
-    `${num(s.closedInMonth - s.closedFromPrior)} of them raised in ${monthLabel(key)}`;
-  document.getElementById('scClosedPrior').textContent = num(s.closedFromPrior);
-  document.getElementById('scClosedPriorSub').textContent =
-    `${pct(s.closedFromPrior, s.closedInMonth)}% of everything closed this month`;
-  document.getElementById('scAvgDays').textContent =
-    s.avgDaysToClose == null ? '–' : s.avgDaysToClose.toFixed(1);
-  document.getElementById('scAvgDaysSub').textContent = 'Raised to final visit';
+    : (s.warranty > 0 ? s.warranty + ' : 0' : '–'));
+  setText(P + 'RatioSub', `${num(s.warranty)} warranty · ${num(s.chargeable)} chargeable`);
 
   const net = s.raised - s.closedInMonth;
-  const netEl = document.getElementById('scNet');
-  netEl.textContent = (net > 0 ? '+' : '') + num(net);
-  const netSub = document.getElementById('scNetSub');
+  setText(P + 'Net', (net > 0 ? '+' : '') + num(net));
+  const netSub = document.getElementById(P + 'NetSub');
   netSub.textContent = net > 0 ? 'Backlog grew this month'
                      : net < 0 ? 'Backlog reduced this month'
                                : 'Backlog unchanged';
   netSub.className = 'kpi-sub ' + (net > 0 ? 'up' : net < 0 ? 'down' : '');
 
-  // charts
-  const byStatus = {}; s.calls.forEach(c => { const k = c.status || 'Unknown'; byStatus[k] = (byStatus[k]||0)+1; });
+  // ── closed during the month ──
+  setText(P + 'ClosedAct', num(s.closedInMonth));
+  setText(P + 'ClosedActSub', `${num(s.closedInMonth - s.closedFromPrior)} of them raised in ${monthLabel(key)}`);
+  setText(P + 'ClosedPrior', num(s.closedFromPrior));
+  setText(P + 'ClosedPriorSub', `${pct(s.closedFromPrior, s.closedInMonth)}% of everything closed this month`);
+  setText(P + 'AvgDays', s.avgDaysToClose == null ? '–' : s.avgDaysToClose.toFixed(1));
+  const same = s.closedInMonth - s.closedFromPrior;
+  setText(P + 'Same', num(same));
+  setText(P + 'SameSub', `${pct(same, s.closedInMonth)}% of everything closed this month`);
+
+  // ── open backlog: every open call, any month ──
+  const backlog = set.filter(c => !c.isClosed)
+    .map(c => ({ ...c, age: ageDays(c) }))
+    .filter(c => c.age !== null)
+    .sort((a, b) => b.age - a.age);
+  const over30 = backlog.filter(c => c.age > 30).length;
+  const avgAge = backlog.length ? backlog.reduce((t, c) => t + c.age, 0) / backlog.length : 0;
+
+  setText(P + 'BkTotal', num(backlog.length));
+  setText(P + 'BkTotalSub', `${num(backlog.filter(c => c.monthKey === key).length)} raised in ${monthLabel(key)}`);
+  setText(P + 'BkOldest', backlog.length ? num(backlog[0].age) : '–');
+  setText(P + 'BkOldestSub', backlog.length ? `Raised ${dateStr(backlog[0].dateAdded)}` : 'Days since raised');
+  setText(P + 'BkAvgAge', backlog.length ? avgAge.toFixed(0) : '–');
+  setText(P + 'BkOver30', num(over30));
+  setText(P + 'BkOver30Sub', `${pct(over30, backlog.length)}% of the backlog`);
+
+  // ── charts ──
+  const byStatus = {};
+  s.calls.forEach(c => { const k = c.status || 'Unknown'; byStatus[k] = (byStatus[k]||0)+1; });
   const statusLabels = sortStatuses(Object.keys(byStatus));
-  drawChart('callStatus', 'chartCallStatus', {
+  drawChart(P + 'Status', P + 'ChartStatus', {
     type: 'doughnut',
     data: { labels: statusLabels, datasets: [{ data: statusLabels.map(l => byStatus[l]), backgroundColor: statusLabels.map(statusColour), borderWidth: 2, borderColor: '#fff' }] },
     options: doughnutOpts()
   });
 
-  const byType = {}; s.calls.forEach(c => { const k = c.callType || 'Unknown'; byType[k] = (byType[k]||0)+1; });
-  const typeLabels = Object.keys(byType).sort((a,b) => byType[b] - byType[a]);
-  drawChart('callType', 'chartCallType', {
-    type: 'doughnut',
-    data: { labels: typeLabels, datasets: [{ data: typeLabels.map(l => byType[l]), backgroundColor: typeLabels.map((_,i) => colourFor(i)), borderWidth: 2, borderColor: '#fff' }] },
-    options: doughnutOpts()
-  });
-
-  drawChart('billing', 'chartBilling', {
+  drawChart(P + 'Mix', P + 'ChartMix', {
     type: 'doughnut',
     data: { labels: ['Warranty','Chargeable'], datasets: [{ data: [s.warranty, s.chargeable], backgroundColor: ['#ffc107','#6f42c1'], borderWidth: 2, borderColor: '#fff' }] },
     options: doughnutOpts()
   });
 
-  // table
-  const tbody = document.getElementById('callsTableBody');
+  if (document.getElementById(P + 'ChartType')) {
+    const byType = {};
+    s.calls.forEach(c => { const k = c.callType || 'Unknown'; byType[k] = (byType[k]||0)+1; });
+    const t = topN(byType, 10);
+    drawChart(P + 'Type', P + 'ChartType', {
+      type: 'doughnut',
+      data: { labels: t.map(e => e[0]), datasets: [{ data: t.map(e => e[1]), backgroundColor: t.map((_,i) => colourFor(i)), borderWidth: 2, borderColor: '#fff' }] },
+      options: doughnutOpts()
+    });
+  }
+
+  if (document.getElementById(P + 'ChartBooked')) {
+    const byWho = {};
+    s.calls.forEach(c => { const k = c.engineer || '(not booked)'; byWho[k] = (byWho[k]||0)+1; });
+    const t = topN(byWho, 9);
+    drawChart(P + 'Booked', P + 'ChartBooked', {
+      type: 'doughnut',
+      data: { labels: t.map(e => e[0]), datasets: [{ data: t.map(e => e[1]), backgroundColor: t.map((_,i) => colourFor(i + 2)), borderWidth: 2, borderColor: '#fff' }] },
+      options: doughnutOpts()
+    });
+  }
+
+  const bandCounts = AGE_BANDS.map(b => backlog.filter(c => b.test(c.age)).length);
+  drawChart(P + 'Age', P + 'ChartAge', {
+    type: 'bar',
+    data: { labels: AGE_BANDS.map(b => b.label), datasets: [{ label: 'Open calls', data: bandCounts, backgroundColor: ['#28a745','#ffc107','#fd7e14','#dc3545'], borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0 } } } }
+  });
+
+  // ── raised table, oldest appointment first ──
+  const showType = P === 'ac';
+  const tbody = document.getElementById(P + 'TableBody');
   tbody.innerHTML = '';
-  const rows = [...s.calls].sort((a,b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+  const rows = [...s.calls].sort((a, b) => apptKey(a) - apptKey(b));
   rows.forEach(c => {
     const statusBadge = c.isClosed
       ? `<span class="badge badge-fresh">${esc(c.status || 'Closed')}</span>`
@@ -632,96 +928,21 @@ function renderCallsTab() {
       ? '<span class="badge badge-charge">Chargeable</span>'
       : '<span class="badge badge-warranty">Warranty</span>';
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td><td>${dateStr(c.dateAdded)}</td><td>${esc(c.callType)}</td><td>${billBadge}</td><td>${statusBadge}</td><td>${dateStr(c.lastAppointment)}</td><td>${esc(c.engineer) || '–'}</td>`;
+    tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td>`
+      + `<td>${dateStr(c.dateAdded)}</td><td>${dateStr(c.lastAppointment)}</td>`
+      + (showType ? `<td>${esc(c.callType)}</td>` : '')
+      + `<td>${billBadge}</td><td>${statusBadge}</td><td>${esc(c.engineer) || '–'}</td>`;
     tbody.appendChild(tr);
   });
-  if (rows.length === 0) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">No service calls raised in this month</td></tr>';
-}
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${showType ? 8 : 7}" style="text-align:center;color:#999;padding:20px">No calls raised in this month</td></tr>`;
+  }
 
-function doughnutOpts() {
-  return { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } }, tooltip: { callbacks: { label: ctx => { const v = ctx.parsed; const t = ctx.dataset.data.reduce((a,b) => a+b, 0); return ` ${v} (${t ? ((v/t)*100).toFixed(1) : 0}%)`; } } } } };
-}
-
-const AGE_BANDS = [
-  { label: '0–7 days',   test: d => d <= 7 },
-  { label: '8–30 days',  test: d => d > 7 && d <= 30 },
-  { label: '31–90 days', test: d => d > 30 && d <= 90 },
-  { label: '91+ days',   test: d => d > 90 },
-];
-
-function ageDays(c) {
-  const ms = new Date(c.dateAdded).getTime();
-  return isNaN(ms) ? null : Math.floor((Date.now() - ms) / 86400000);
-}
-
-function buildOpenFilters() {
-  const open = CALLS.filter(c => !c.isClosed);
-  const fill = (id, values) => {
-    const sel = document.getElementById(id);
-    const keep = sel.value;
-    sel.innerHTML = sel.options[0].outerHTML;
-    [...new Set(values.filter(Boolean))].sort().forEach(v => {
-      const o = document.createElement('option');
-      o.value = v; o.textContent = v;
-      sel.appendChild(o);
-    });
-    sel.value = keep;
-  };
-  fill('openStatusFilter', open.map(c => c.status));
-  fill('openTypeFilter',   open.map(c => c.callType));
-}
-
-function renderOpenTab() {
-  const fStatus  = document.getElementById('openStatusFilter').value;
-  const fBilling = document.getElementById('openBillingFilter').value;
-  const fType    = document.getElementById('openTypeFilter').value;
-
-  const all = CALLS.filter(c => !c.isClosed)
-    .map(c => ({ ...c, age: ageDays(c) }))
-    .filter(c => c.age !== null)
-    .sort((a, b) => b.age - a.age);   // oldest first
-
-  const rows = all.filter(c =>
-    (!fStatus  || c.status  === fStatus) &&
-    (!fBilling || c.billing === fBilling) &&
-    (!fType    || c.callType === fType));
-
-  const over30 = rows.filter(c => c.age > 30).length;
-  const avgAge = rows.length ? rows.reduce((s, c) => s + c.age, 0) / rows.length : 0;
-
-  document.getElementById('opTotal').textContent = num(rows.length);
-  document.getElementById('opTotalSub').textContent = rows.length === all.length
-    ? 'Every call not yet closed'
-    : `Filtered from ${num(all.length)} open calls`;
-  document.getElementById('opOldest').textContent = rows.length ? num(rows[0].age) : '–';
-  document.getElementById('opOldestSub').textContent = rows.length
-    ? `Raised ${dateStr(rows[0].dateAdded)}` : 'Days since raised';
-  document.getElementById('opAvgAge').textContent = rows.length ? avgAge.toFixed(0) : '–';
-  document.getElementById('opOver30').textContent = num(over30);
-  document.getElementById('opOver30Sub').textContent = `${pct(over30, rows.length)}% of those shown`;
-
-  const byStatus = {};
-  rows.forEach(c => { const k = c.status || 'Unknown'; byStatus[k] = (byStatus[k] || 0) + 1; });
-  const statusLabels = sortStatuses(Object.keys(byStatus));
-  drawChart('openStatus', 'chartOpenStatus', {
-    type: 'doughnut',
-    data: { labels: statusLabels, datasets: [{ data: statusLabels.map(l => byStatus[l]), backgroundColor: statusLabels.map(statusColour), borderWidth: 2, borderColor: '#fff' }] },
-    options: doughnutOpts()
-  });
-
-  const bandCounts = AGE_BANDS.map(b => rows.filter(c => b.test(c.age)).length);
-  drawChart('openAge', 'chartOpenAge', {
-    type: 'bar',
-    data: { labels: AGE_BANDS.map(b => b.label), datasets: [{ label: 'Open calls', data: bandCounts, backgroundColor: ['#28a745', '#ffc107', '#fd7e14', '#dc3545'], borderRadius: 4 }] },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0 } } } }
-  });
-
-  document.getElementById('openCount').textContent = num(rows.length);
-  const tbody = document.getElementById('openTableBody');
-  tbody.innerHTML = '';
-  rows.forEach(c => {
+  // ── open backlog table, oldest first ──
+  setText(P + 'OpenCount', num(backlog.length));
+  const ob = document.getElementById(P + 'OpenBody');
+  ob.innerHTML = '';
+  backlog.forEach(c => {
     const badge = c.age > 90 ? '<span class="badge badge-overdue">&gt;90 days</span>'
                 : c.age > 30 ? '<span class="badge badge-warn">&gt;30 days</span>'
                              : '<span class="badge badge-fresh">Current</span>';
@@ -729,34 +950,44 @@ function renderOpenTab() {
       ? '<span class="badge badge-charge">Chargeable</span>'
       : '<span class="badge badge-warranty">Warranty</span>';
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td><td>${dateStr(c.dateAdded)}</td>`
-      + `<td class="num">${c.age}</td><td>${esc(c.callType)}</td><td>${bill}</td>`
-      + `<td><span class="badge badge-open">${esc(c.status || 'Open')}</span></td>`
+    tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td>`
+      + `<td>${dateStr(c.dateAdded)}</td><td class="num">${c.age}</td>`
+      + (showType ? `<td>${esc(c.callType)}</td>` : '')
+      + `<td>${bill}</td><td><span class="badge badge-open">${esc(c.status || 'Open')}</span></td>`
       + `<td>${dateStr(c.lastAppointment)}</td><td>${badge}</td>`;
-    tbody.appendChild(tr);
+    ob.appendChild(tr);
   });
-  if (rows.length === 0) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;padding:20px">No open calls match these filters</td></tr>';
+  if (backlog.length === 0) {
+    ob.innerHTML = `<tr><td colspan="${showType ? 9 : 8}" style="text-align:center;color:#999;padding:20px">No open calls</td></tr>`;
+  }
 }
 
+/* ═══════════════════ TAB 4 — trends ═══════════════════ */
 function renderTrendsTab() {
-  const fyKeys = fyMonthKeys();
-  const stats  = fyKeys.map(monthStats);
-  const fyTotal = stats.reduce((s,m) => s + m.raised, 0);
+  const scope  = document.getElementById('trendScope').value;
+  const filter = scope === 'service' ? SERVICE_ONLY : ANY_TYPE;
+  const scopeLbl = scope === 'service' ? 'Service calls' : 'All call types';
+
+  const fyKeys   = fyMonthKeys();
+  const stats    = fyKeys.map(k => monthStats(k, filter));
+  const fyTotal  = stats.reduce((s,m) => s + m.raised, 0);
   const fyCharge = stats.reduce((s,m) => s + m.chargeable, 0);
+  const fyClosed = stats.reduce((s,m) => s + m.closedInMonth, 0);
   const fyWarranty = fyTotal - fyCharge;
 
-  document.getElementById('fyTotal').textContent = num(fyTotal);
-  document.getElementById('fyTotalSub').textContent = `Since 1 April · ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'}`;
-  document.getElementById('fyAvg').textContent = fyKeys.length ? (fyTotal / fyKeys.length).toFixed(1) : '–';
-  document.getElementById('fyAvgSub').textContent = 'Calls raised per month';
-  document.getElementById('fyCharge').textContent = num(fyCharge);
-  document.getElementById('fyChargeSub').textContent = `${pct(fyCharge, fyTotal)}% of FY calls`;
-  document.getElementById('fyWarranty').textContent = num(fyWarranty);
-  document.getElementById('fyWarrantySub').textContent = `${pct(fyWarranty, fyTotal)}% of FY calls`;
+  setText('fyTotal', num(fyTotal));
+  setText('fyTotalSub', `${scopeLbl} · since 1 April · ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'}`);
+  setText('fyAvgRaised', fyKeys.length ? (fyTotal / fyKeys.length).toFixed(1) : '–');
+  setText('fyAvgRaisedSub', `${num(fyTotal)} raised over ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'}`);
+  setText('fyAvgClosed', fyKeys.length ? (fyClosed / fyKeys.length).toFixed(1) : '–');
+  setText('fyAvgClosedSub', `${num(fyClosed)} closed over ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'}`);
+  setText('fyCharge', num(fyCharge));
+  setText('fyChargeSub', `${pct(fyCharge, fyTotal)}% chargeable · ${num(fyWarranty)} warranty`);
 
-  // full window (previous FY + this FY) for the trend charts
-  const allStats = MONTH_KEYS.map(monthStats);
-  const labels = MONTH_KEYS.map(monthLabel);
+  const allStats = MONTH_KEYS.map(k => monthStats(k, filter));
+  const labels   = MONTH_KEYS.map(monthLabel);
+  const avgRaised = fyKeys.length ? fyTotal / fyKeys.length : null;
+  const avgClosed = fyKeys.length ? fyClosed / fyKeys.length : null;
 
   drawChart('monthly', 'chartMonthly', {
     type: 'bar',
@@ -770,13 +1001,16 @@ function renderTrendsTab() {
                 y: { stacked: true, beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0 } } } }
   });
 
+  const line = v => MONTH_KEYS.map(k => (k >= FY_START_KEY && v != null) ? v : null);
   drawChart('raisedClosed', 'chartRaisedClosed', {
     type: 'bar',
     data: { labels, datasets: [
       { label: 'Raised', data: allStats.map(m => m.raised), backgroundColor: '#17a2b8', borderRadius: 3 },
       { label: 'Closed in month', data: allStats.map(m => m.closedInMonth), backgroundColor: '#28a745', borderRadius: 3 },
-      { label: 'FY average', type: 'line', data: MONTH_KEYS.map(k => k >= FY_START_KEY && fyKeys.length ? fyTotal / fyKeys.length : null),
-        borderColor: '#dc3545', borderWidth: 2, borderDash: [6,4], pointRadius: 0, fill: false, spanGaps: true },
+      { label: 'Avg raised', type: 'line', data: line(avgRaised),
+        borderColor: '#0d6d7d', borderWidth: 2, borderDash: [6,4], pointRadius: 0, fill: false, spanGaps: true },
+      { label: 'Avg closed', type: 'line', data: line(avgClosed),
+        borderColor: '#1e7e34', borderWidth: 2, borderDash: [2,3], pointRadius: 0, fill: false, spanGaps: true },
     ] },
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } } },
@@ -784,7 +1018,6 @@ function renderTrendsTab() {
                 y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0 } } } }
   });
 
-  // month-by-month table (newest first), whole window
   const tbody = document.getElementById('trendsTableBody');
   tbody.innerHTML = '';
   [...allStats].reverse().forEach((m, i, arr) => {
@@ -806,27 +1039,30 @@ function renderTrendsTab() {
     tbody.appendChild(tr);
   });
 
-  const foot = document.getElementById('trendsTableFoot');
-  const totClosed    = stats.reduce((s,m) => s + m.closed, 0);
-  const totClosedAct  = stats.reduce((s,m) => s + m.closedInMonth, 0);
-  foot.innerHTML = `<tr><td>Financial year to date</td><td class="num">${num(fyTotal)}</td>`
-    + `<td class="num">${num(totClosedAct)}</td><td class="num">${num(totClosed)}</td>`
-    + `<td class="num">${num(fyTotal - totClosed)}</td>`
+  const totClosedCohort = stats.reduce((s,m) => s + m.closed, 0);
+  document.getElementById('trendsTableFoot').innerHTML =
+    `<tr><td>Financial year to date</td><td class="num">${num(fyTotal)}</td>`
+    + `<td class="num">${num(fyClosed)}</td><td class="num">${num(totClosedCohort)}</td>`
+    + `<td class="num">${num(fyTotal - totClosedCohort)}</td>`
     + `<td class="num">${num(fyWarranty)}</td><td class="num">${num(fyCharge)}</td>`
     + `<td class="num">${pct(fyCharge, fyTotal)}%</td><td class="num">–</td></tr>`;
 }
 
 /* ═══════════════════════════ data loading ═══════════════════════════ */
-async function loadContracts() {
-  const res = await fetch('/api/contracts');
+/* Cache-busted so a page load always shows current data rather than whatever
+   the browser or the function held from last time. */
+async function loadContracts(fresh) {
+  const res = await fetch(`/api/contracts?t=${Date.now()}${fresh ? '&fresh=1' : ''}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Contracts API returned ${res.status}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
-  buildContractKPIs(data); buildContractCharts(data); buildContractTable(data);
+  CONTRACTS = data;
+  buildContractKPIs(data);
+  buildContractCharts(data);
 }
 
-async function loadServiceCalls() {
-  const res = await fetch('/api/service-calls');
+async function loadServiceCalls(fresh) {
+  const res = await fetch(`/api/service-calls?t=${Date.now()}${fresh ? '&fresh=1' : ''}`, { cache: 'no-store' });
   const data = await res.json().catch(() => ({ error: `Service calls API returned ${res.status}` }));
   if (!res.ok || data.error) throw new Error(data.error || `Service calls API returned ${res.status}`);
 
@@ -834,8 +1070,8 @@ async function loadServiceCalls() {
   FY_START_KEY = (data.fyStart || '').slice(0, 7);
 
   // Month list is driven by the reporting window only. The payload also carries
-  // still-open calls raised before the window (so the Open Calls tab shows the
-  // true backlog) and those must not create stray months in the trends.
+  // still-open calls raised before the window, and those must not create stray
+  // months in the trends.
   MONTH_KEYS = [];
   const start = data.rangeFrom ? new Date(data.rangeFrom) : new Date();
   const end   = new Date();
@@ -845,45 +1081,52 @@ async function loadServiceCalls() {
     MONTH_KEYS.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2,'0')}`);
   }
 
-  buildMonthSelect();
-  buildOpenFilters();
-  renderCallsTab();
-  renderOpenTab();
-  renderTrendsTab();
+  PANELS.forEach(cfg => buildMonthSelect(cfg.p + 'MonthSelect'));
 }
 
 function showPanelError(id, msg) {
-  document.getElementById(id).innerHTML = `<div class="inline-error"><strong>Could not load service calls.</strong><br>${esc(msg)}</div>`;
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = `<div class="inline-error"><strong>Could not load service calls.</strong><br>${esc(msg)}</div>`;
 }
 
-async function loadData() {
+async function loadData(fresh) {
   const overlay = document.getElementById('overlay');
   overlay.classList.remove('hidden');
   overlay.innerHTML = '<div class="spinner"></div><div class="overlay-text">Loading dashboard…</div>';
-  ['callsError', 'openError', 'trendsError'].forEach(id => {
-    document.getElementById(id).innerHTML = '';
+  ['callsError', 'allError', 'trendsError'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = '';
   });
 
-  const results = await Promise.allSettled([loadContracts(), loadServiceCalls()]);
+  const results = await Promise.allSettled([loadContracts(fresh), loadServiceCalls(fresh)]);
+
+  if (results[1].status === 'fulfilled') {
+    PANELS.forEach(renderCallsPanel);
+    renderTrendsTab();
+  } else {
+    ['callsError', 'allError', 'trendsError'].forEach(id => showPanelError(id, results[1].reason.message));
+  }
 
   if (results[0].status === 'rejected') {
-    overlay.innerHTML = `<div class="error-msg">⚠️ Failed to load contract data<br><small>${esc(results[0].reason.message)}</small><br><br><button class="btn-refresh" onclick="loadData()" style="background:#527F6E;color:#fff">Retry</button></div>`;
+    overlay.innerHTML = `<div class="error-msg">⚠️ Failed to load contract data<br><small>${esc(results[0].reason.message)}</small><br><br><button class="btn-refresh" onclick="loadData(true)" style="background:#527F6E;color:#fff">Retry</button></div>`;
     return;
   }
-  if (results[1].status === 'rejected') {
-    ['callsError', 'openError', 'trendsError'].forEach(id =>
-      showPanelError(id, results[1].reason.message));
-  }
 
-  document.getElementById('lastUpdated').textContent = 'Data as at: ' + new Date().toLocaleString('en-GB');
+  // Contract rows need the call data to count calls per contract, so build the
+  // table after both requests have settled.
+  buildContractTable();
+
+  setText('lastUpdated', 'Data as at: ' + new Date().toLocaleString('en-GB'));
   overlay.classList.add('hidden');
 }
 
-document.getElementById('btnRefresh').addEventListener('click', loadData);
-document.getElementById('monthSelect').addEventListener('change', renderCallsTab);
-['openStatusFilter', 'openBillingFilter', 'openTypeFilter'].forEach(id =>
-  document.getElementById(id).addEventListener('change', renderOpenTab));
-loadData();
+document.getElementById('btnRefresh').addEventListener('click', () => loadData(true));
+PANELS.forEach(cfg => {
+  document.getElementById(cfg.p + 'MonthSelect')
+    .addEventListener('change', () => renderCallsPanel(cfg));
+});
+document.getElementById('trendScope').addEventListener('change', renderTrendsTab);
+
+loadData(true);
 </script>
 </body>
 </html>
