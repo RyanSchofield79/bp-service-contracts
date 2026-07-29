@@ -330,7 +330,11 @@
     <div class="toolbar">
       <label for="acMonthSelect">Month</label>
       <select id="acMonthSelect"></select>
-      <span class="note">All call types</span>
+      <label for="acTypeFilter">Call Type</label>
+      <select id="acTypeFilter"><option value="">All types</option></select>
+      <label for="acBookedFilter">Booked For</label>
+      <select id="acBookedFilter"><option value="">Anyone</option></select>
+      <span class="note" id="acScopeNote">All call types</span>
       <span class="note" id="acMonthNote" style="display:none">Current month – figures are month to date</span>
     </div>
 
@@ -778,12 +782,22 @@ let FY_START_KEY = ''; // e.g. "2026-04"
 
 const SERVICE_ONLY = c => c.callType === 'Service';
 const ANY_TYPE     = () => true;
+const BOOKED_BLANK = '(not booked)';
+
+/* All Calls is filtered by the two dropdowns at the head of that tab. Read at
+   render time so the same panel code serves both tabs. */
+function acFilter(c) {
+  const t = (document.getElementById('acTypeFilter')   || {}).value || '';
+  const b = (document.getElementById('acBookedFilter') || {}).value || '';
+  return (!t || c.callType === t)
+      && (!b || (c.engineer || BOOKED_BLANK) === b);
+}
 
 /* The two call panels are identical except for the type filter and the id
    prefix, so both are driven from one config. */
 const PANELS = [
   { p: 'sc', filter: SERVICE_ONLY, label: 'Service' },
-  { p: 'ac', filter: ANY_TYPE,     label: 'All' },
+  { p: 'ac', filter: acFilter,     label: 'All' },
 ];
 
 function monthStats(key, filter) {
@@ -826,6 +840,30 @@ function buildMonthSelect(id) {
   sel.value = MONTH_KEYS.includes(nowKey) ? nowKey : MONTH_KEYS[MONTH_KEYS.length - 1];
 }
 
+/* Options come from the whole window, not the selected month, so the lists
+   stay put as you move between months. */
+function buildAllCallsFilters() {
+  const fill = (id, values, keepFirst) => {
+    const sel = document.getElementById(id);
+    const previous = sel.value;
+    sel.innerHTML = sel.options[0].outerHTML;
+    values.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+    sel.value = [...sel.options].some(o => o.value === previous) ? previous : '';
+  };
+
+  const typeCounts = {};
+  CALLS.forEach(c => { const k = c.callType || 'Unknown'; typeCounts[k] = (typeCounts[k] || 0) + 1; });
+  fill('acTypeFilter', Object.keys(typeCounts).sort((a, b) => typeCounts[b] - typeCounts[a]));
+
+  const people = [...new Set(CALLS.map(c => c.engineer || BOOKED_BLANK))]
+    .sort((a, b) => a === BOOKED_BLANK ? 1 : b === BOOKED_BLANK ? -1 : a.localeCompare(b));
+  fill('acBookedFilter', people);
+}
+
 function renderCallsPanel(cfg) {
   const P = cfg.p;
   const key = document.getElementById(P + 'MonthSelect').value;
@@ -836,6 +874,15 @@ function renderCallsPanel(cfg) {
 
   const set  = CALLS.filter(cfg.filter);
   const s    = monthStats(key, cfg.filter);
+
+  if (P === 'ac') {
+    const t = document.getElementById('acTypeFilter').value;
+    const b = document.getElementById('acBookedFilter').value;
+    const bits = [t && `Type: ${t}`, b && `Booked for: ${b}`].filter(Boolean);
+    setText('acScopeNote', bits.length
+      ? `${bits.join(' · ')} — ${num(set.length)} of ${num(CALLS.length)} calls`
+      : 'All call types');
+  }
   const idx  = MONTH_KEYS.indexOf(key);
   const prev = idx > 0 ? monthStats(MONTH_KEYS[idx - 1], cfg.filter) : null;
 
@@ -1118,6 +1165,7 @@ async function loadServiceCalls(fresh) {
   }
 
   PANELS.forEach(cfg => buildMonthSelect(cfg.p + 'MonthSelect'));
+  buildAllCallsFilters();
 }
 
 function showPanelError(id, msg) {
@@ -1161,6 +1209,9 @@ PANELS.forEach(cfg => {
     .addEventListener('change', () => renderCallsPanel(cfg));
 });
 document.getElementById('trendScope').addEventListener('change', renderTrendsTab);
+['acTypeFilter', 'acBookedFilter'].forEach(id =>
+  document.getElementById(id).addEventListener('change',
+    () => renderCallsPanel(PANELS.find(c => c.p === 'ac'))));
 
 initCollapsibleCards();
 loadData(true);
