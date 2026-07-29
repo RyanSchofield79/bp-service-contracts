@@ -50,6 +50,14 @@
     .chart-wrap.tall { height: 320px; }
     .table-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px; }
     .table-card h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 14px; }
+    /* whole-table collapse, same twirl as the row expanders */
+    .table-card h2.toggle { cursor: pointer; user-select: none; }
+    .table-card h2.toggle:hover { color: #527F6E; }
+    .table-card h2 .twirl-card { display: inline-block; width: 11px; color: #527F6E;
+                                 transition: transform .15s; margin-right: 8px; transform: rotate(90deg); }
+    .table-card.collapsed h2 { margin-bottom: 0; }
+    .table-card.collapsed h2 .twirl-card { transform: rotate(0deg); }
+    .table-card.collapsed .card-body { display: none; }
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     thead th { text-align: left; padding: 8px 12px; background: #f8f9fa; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; color: #666; border-bottom: 1px solid #e9ecef; }
     tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
@@ -605,6 +613,32 @@ const AGE_BANDS = [
   { label: '91+ days',   test: d => d > 90 },
 ];
 
+/* Every table card gets a chevron in its heading that collapses the table.
+   Wrapping happens once here so the render functions can keep replacing the
+   tbody without disturbing the collapsed state. */
+function initCollapsibleCards() {
+  document.querySelectorAll('.table-card').forEach(card => {
+    const h2 = card.querySelector('h2');
+    if (!h2 || h2.classList.contains('toggle')) return;
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    while (h2.nextSibling) body.appendChild(h2.nextSibling);
+    card.appendChild(body);
+
+    const tw = document.createElement('span');
+    tw.className = 'twirl-card';
+    tw.innerHTML = '&#x25B6;';
+    h2.insertBefore(tw, h2.firstChild);
+    h2.classList.add('toggle');
+
+    h2.addEventListener('click', () => {
+      card.classList.toggle('collapsed');
+      Object.values(charts).forEach(c => { if (c) c.resize(); });
+    });
+  });
+}
+
 /* tab switching */
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -862,9 +896,9 @@ function renderCallsPanel(cfg) {
 
   setText(P + 'BkTotal', num(backlog.length));
   setText(P + 'BkTotalSub', `${num(backlog.filter(c => c.monthKey === key).length)} raised in ${monthLabel(key)}`);
-  setText(P + 'BkOldest', backlog.length ? num(backlog[0].age) : '–');
+  setText(P + 'BkOldest', backlog.length ? num(backlog[0].age) + ' days' : '–');
   setText(P + 'BkOldestSub', backlog.length ? `Raised ${dateStr(backlog[0].dateAdded)}` : 'Days since raised');
-  setText(P + 'BkAvgAge', backlog.length ? avgAge.toFixed(0) : '–');
+  setText(P + 'BkAvgAge', backlog.length ? avgAge.toFixed(0) + ' days' : '–');
   setText(P + 'BkOver30', num(over30));
   setText(P + 'BkOver30Sub', `${pct(over30, backlog.length)}% of the backlog`);
 
@@ -1126,6 +1160,7 @@ PANELS.forEach(cfg => {
 });
 document.getElementById('trendScope').addEventListener('change', renderTrendsTab);
 
+initCollapsibleCards();
 loadData(true);
 </script>
 </body>
