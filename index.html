@@ -38,6 +38,7 @@
     .kpi-card.teal   { border-left-color: #527F6E; }
     .kpi-card.grey   { border-left-color: #6c757d; }
     .kpi-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 6px; }
+    .kpi-label .kpi-unit { font-weight: 600; text-transform: none; letter-spacing: 0; color: #b3bdb9; margin-left: 6px; }
     .kpi-value { font-size: 2rem; font-weight: 700; color: #1a1a1a; line-height: 1.1; }
     .kpi-sub   { font-size: 0.78rem; color: #999; margin-top: 4px; }
     .kpi-sub.up   { color: #c0392b; font-weight: 600; }
@@ -265,12 +266,12 @@
         <div class="kpi-sub" id="scBkTotalSub">–</div>
       </div>
       <div class="kpi-card orange">
-        <div class="kpi-label">Oldest Call</div>
+        <div class="kpi-label">Oldest Call <span class="kpi-unit">days</span></div>
         <div class="kpi-value" id="scBkOldest">–</div>
         <div class="kpi-sub" id="scBkOldestSub">Days since raised</div>
       </div>
       <div class="kpi-card yellow">
-        <div class="kpi-label">Average Age</div>
+        <div class="kpi-label">Average Age <span class="kpi-unit">days</span></div>
         <div class="kpi-value" id="scBkAvgAge">–</div>
         <div class="kpi-sub">Days since raised</div>
       </div>
@@ -413,12 +414,12 @@
         <div class="kpi-sub" id="acBkTotalSub">–</div>
       </div>
       <div class="kpi-card orange">
-        <div class="kpi-label">Oldest Call</div>
+        <div class="kpi-label">Oldest Call <span class="kpi-unit">days</span></div>
         <div class="kpi-value" id="acBkOldest">–</div>
         <div class="kpi-sub" id="acBkOldestSub">Days since raised</div>
       </div>
       <div class="kpi-card yellow">
-        <div class="kpi-label">Average Age</div>
+        <div class="kpi-label">Average Age <span class="kpi-unit">days</span></div>
         <div class="kpi-value" id="acBkAvgAge">–</div>
         <div class="kpi-sub">Days since raised</div>
       </div>
@@ -625,6 +626,7 @@ function initCollapsibleCards() {
     body.className = 'card-body';
     while (h2.nextSibling) body.appendChild(h2.nextSibling);
     card.appendChild(body);
+    card.classList.add('collapsed');   // start folded away; click to open
 
     const tw = document.createElement('span');
     tw.className = 'twirl-card';
@@ -896,9 +898,9 @@ function renderCallsPanel(cfg) {
 
   setText(P + 'BkTotal', num(backlog.length));
   setText(P + 'BkTotalSub', `${num(backlog.filter(c => c.monthKey === key).length)} raised in ${monthLabel(key)}`);
-  setText(P + 'BkOldest', backlog.length ? num(backlog[0].age) + ' days' : '–');
+  setText(P + 'BkOldest', backlog.length ? num(backlog[0].age) : '–');
   setText(P + 'BkOldestSub', backlog.length ? `Raised ${dateStr(backlog[0].dateAdded)}` : 'Days since raised');
-  setText(P + 'BkAvgAge', backlog.length ? avgAge.toFixed(0) + ' days' : '–');
+  setText(P + 'BkAvgAge', backlog.length ? avgAge.toFixed(0) : '–');
   setText(P + 'BkOver30', num(over30));
   setText(P + 'BkOver30Sub', `${pct(over30, backlog.length)}% of the backlog`);
 
