@@ -210,30 +210,6 @@
       </div>
     </div>
 
-    <div class="section-label">Billing mix <span>— of the calls raised in <b id="scLblB">–</b></span></div>
-    <div class="kpi-grid">
-      <div class="kpi-card yellow">
-        <div class="kpi-label">Warranty</div>
-        <div class="kpi-value" id="scWarranty">–</div>
-        <div class="kpi-sub" id="scWarrantySub">–</div>
-      </div>
-      <div class="kpi-card purple">
-        <div class="kpi-label">Chargeable</div>
-        <div class="kpi-value" id="scCharge">–</div>
-        <div class="kpi-sub" id="scChargeSub">–</div>
-      </div>
-      <div class="kpi-card grey">
-        <div class="kpi-label">Warranty : Chargeable</div>
-        <div class="kpi-value" id="scRatio">–</div>
-        <div class="kpi-sub" id="scRatioSub">–</div>
-      </div>
-      <div class="kpi-card blue">
-        <div class="kpi-label">Net Backlog Change</div>
-        <div class="kpi-value" id="scNet">–</div>
-        <div class="kpi-sub" id="scNetSub">–</div>
-      </div>
-    </div>
-
     <div class="section-label">Closed during <span><b id="scLblC">–</b> — whenever the call was raised</span></div>
     <div class="kpi-grid">
       <div class="kpi-card green">
@@ -279,6 +255,30 @@
         <div class="kpi-label">Open Over 30 Days</div>
         <div class="kpi-value" id="scBkOver30">–</div>
         <div class="kpi-sub" id="scBkOver30Sub">–</div>
+      </div>
+    </div>
+
+    <div class="section-label">Billing mix <span>— of the calls raised in <b id="scLblB">–</b></span></div>
+    <div class="kpi-grid">
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Warranty</div>
+        <div class="kpi-value" id="scWarranty">–</div>
+        <div class="kpi-sub" id="scWarrantySub">–</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Chargeable</div>
+        <div class="kpi-value" id="scCharge">–</div>
+        <div class="kpi-sub" id="scChargeSub">–</div>
+      </div>
+      <div class="kpi-card grey">
+        <div class="kpi-label">Warranty : Chargeable</div>
+        <div class="kpi-value" id="scRatio">–</div>
+        <div class="kpi-sub" id="scRatioSub">–</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Net Backlog Change</div>
+        <div class="kpi-value" id="scNet">–</div>
+        <div class="kpi-sub" id="scNetSub">–</div>
       </div>
     </div>
 
@@ -362,30 +362,6 @@
       </div>
     </div>
 
-    <div class="section-label">Billing mix <span>— of the calls raised in <b id="acLblB">–</b></span></div>
-    <div class="kpi-grid">
-      <div class="kpi-card yellow">
-        <div class="kpi-label">Warranty</div>
-        <div class="kpi-value" id="acWarranty">–</div>
-        <div class="kpi-sub" id="acWarrantySub">–</div>
-      </div>
-      <div class="kpi-card purple">
-        <div class="kpi-label">Chargeable</div>
-        <div class="kpi-value" id="acCharge">–</div>
-        <div class="kpi-sub" id="acChargeSub">–</div>
-      </div>
-      <div class="kpi-card grey">
-        <div class="kpi-label">Warranty : Chargeable</div>
-        <div class="kpi-value" id="acRatio">–</div>
-        <div class="kpi-sub" id="acRatioSub">–</div>
-      </div>
-      <div class="kpi-card blue">
-        <div class="kpi-label">Net Backlog Change</div>
-        <div class="kpi-value" id="acNet">–</div>
-        <div class="kpi-sub" id="acNetSub">–</div>
-      </div>
-    </div>
-
     <div class="section-label">Closed during <span><b id="acLblC">–</b> — whenever the call was raised</span></div>
     <div class="kpi-grid">
       <div class="kpi-card green">
@@ -403,10 +379,10 @@
         <div class="kpi-value" id="acAvgDays">–</div>
         <div class="kpi-sub">Raised to final visit</div>
       </div>
-      <div class="kpi-card purple">
-        <div class="kpi-label">Closed Same Month</div>
-        <div class="kpi-value" id="acSame">–</div>
-        <div class="kpi-sub" id="acSameSub">–</div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Net Backlog Change</div>
+        <div class="kpi-value" id="acNet">–</div>
+        <div class="kpi-sub" id="acNetSub">–</div>
       </div>
     </div>
 
@@ -434,7 +410,7 @@
       </div>
     </div>
 
-    <div class="charts-row thirds">
+    <div class="charts-row">
       <div class="chart-card">
         <h2>Calls by Type</h2>
         <div class="chart-wrap"><canvas id="acChartType"></canvas></div>
@@ -442,10 +418,6 @@
       <div class="chart-card">
         <h2>Calls by Booked For</h2>
         <div class="chart-wrap"><canvas id="acChartBooked"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h2>Warranty vs Chargeable</h2>
-        <div class="chart-wrap"><canvas id="acChartMix"></canvas></div>
       </div>
     </div>
 
