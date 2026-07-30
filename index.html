@@ -50,7 +50,6 @@
     .kpi-chip.down { background: #e8f6ec; color: #1e8449; }
     .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     .charts-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
-    .charts-row.single { grid-template-columns: 1fr; }
     .chart-note { font-size: 0.8rem; color: #888; text-align: center; padding: 40px 10px; line-height: 1.5; }
     .chart-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .chart-card h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 16px; }
@@ -289,7 +288,7 @@
       </div>
     </div>
 
-    <div class="charts-row thirds">
+    <div class="charts-row">
       <div class="chart-card">
         <h2>Calls by Status</h2>
         <div class="chart-wrap"><canvas id="scChartStatus"></canvas></div>
@@ -298,6 +297,9 @@
         <h2>Warranty vs Chargeable</h2>
         <div class="chart-wrap"><canvas id="scChartMix"></canvas></div>
       </div>
+    </div>
+
+    <div class="charts-row">
       <div class="chart-card">
         <h2>Calls by Product Type</h2>
         <div class="chart-wrap">
@@ -305,9 +307,6 @@
           <canvas id="scChartProduct"></canvas>
         </div>
       </div>
-    </div>
-
-    <div class="charts-row single">
       <div class="chart-card">
         <h2>Open Calls by Age</h2>
         <div class="chart-wrap"><canvas id="scChartAge"></canvas></div>
@@ -462,18 +461,18 @@
         <div class="chart-wrap"><canvas id="acChartBooked"></canvas></div>
       </div>
       <div class="chart-card">
-        <h2>Calls by Product Type</h2>
-        <div class="chart-wrap">
-          <div class="chart-note" id="acProductNote">Loading product types…</div>
-          <canvas id="acChartProduct"></canvas>
-        </div>
+        <h2>Calls by Status</h2>
+        <div class="chart-wrap"><canvas id="acChartStatus"></canvas></div>
       </div>
     </div>
 
     <div class="charts-row">
       <div class="chart-card">
-        <h2>Calls by Status</h2>
-        <div class="chart-wrap"><canvas id="acChartStatus"></canvas></div>
+        <h2>Calls by Product Type</h2>
+        <div class="chart-wrap">
+          <div class="chart-note" id="acProductNote">Loading product types…</div>
+          <canvas id="acChartProduct"></canvas>
+        </div>
       </div>
       <div class="chart-card">
         <h2>Open Calls by Age</h2>
