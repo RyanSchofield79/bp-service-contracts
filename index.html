@@ -494,11 +494,13 @@
         <div class="kpi-label">Avg Closed / Month</div>
         <div class="kpi-value" id="fyAvgClosed">–</div>
         <div class="kpi-sub" id="fyAvgClosedSub">Financial year to date</div>
+        <div class="kpi-chip" id="fyAvgClosedChip">–</div>
       </div>
       <div class="kpi-card purple">
         <div class="kpi-label">FY Chargeable</div>
         <div class="kpi-value" id="fyCharge">–</div>
         <div class="kpi-sub" id="fyChargeSub">Share of FY calls</div>
+        <div class="kpi-chip" id="fyChargeChip">–</div>
       </div>
     </div>
 
@@ -876,26 +878,33 @@ function ordinal(n) {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
-/* Fewer calls raised is the good direction, so a fall is green. */
-const yoyDir = delta => delta === 0 ? '' : (delta < 0 ? 'down' : 'up');
+/* The chip / sub class encodes GOOD or BAD, not up or down: .down renders green
+   and .up renders red. Fewer calls raised is good, but more calls closed and a
+   bigger chargeable share are also good, hence the moreIsBetter flag. */
+function yoyDir(delta, moreIsBetter) {
+  if (!delta) return '';
+  const good = moreIsBetter ? delta > 0 : delta < 0;
+  return good ? 'down' : 'up';
+}
 const yoyArrow = delta => delta === 0 ? '–' : (delta > 0 ? '▲' : '▼');
 function yoyPct(now, then) {
   if (!then) return '–';
   const p = (now - then) / then * 100;
   return (p > 0 ? '+' : '') + p.toFixed(1).replace(/\.0$/, '') + '%';
 }
-function setChip(id, delta, text) {
+function setChip(id, delta, text, moreIsBetter) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.className = 'kpi-chip ' + yoyDir(delta);
+  el.className = 'kpi-chip ' + yoyDir(delta, moreIsBetter);
   el.textContent = text;
 }
-function setSub(id, delta, text) {
+function setSub(id, delta, text, moreIsBetter) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.className = 'kpi-sub ' + yoyDir(delta);
+  el.className = 'kpi-sub ' + yoyDir(delta, moreIsBetter);
   el.textContent = text;
 }
+const shortMonth = key => MONTH_NAMES[Number(key.split('-')[1]) - 1];
 
 function buildMonthSelect(id) {
   const sel = document.getElementById(id);
@@ -1156,6 +1165,30 @@ function renderTrendsTab() {
   const avgDelta = prevAvg == null ? 0 : (fyTotal / (fyKeys.length || 1)) - prevAvg;
   setChip('fyAvgRaisedChip', avgDelta, prevAvg == null ? 'No prior FY data'
     : `${yoyArrow(avgDelta)} ${yoyPct(fyTotal / (fyKeys.length || 1), prevAvg)} vs ${prevAvg.toFixed(1)} last FY`);
+
+  /* Avg Closed / Month → last financial year's monthly average.
+     The FIRST month of the reporting window is deliberately left out. Closures
+     are dated by last appointment, and calls raised before the window are not in
+     the payload, so that opening month shows no carried-over closures at all and
+     reads far too low. Every later month carries 30-70 of them. */
+  const closedKeys    = prevKeys.slice(1);
+  const prevAvgClosed = closedKeys.length
+    ? closedKeys.reduce((s, k) => s + monthStats(k, filter).closedInMonth, 0) / closedKeys.length : null;
+  const currAvgClosed = fyKeys.length ? fyClosed / fyKeys.length : null;
+  const closedDelta   = (prevAvgClosed == null || currAvgClosed == null) ? 0 : currAvgClosed - prevAvgClosed;
+  setChip('fyAvgClosedChip', closedDelta, prevAvgClosed == null ? 'No prior FY data'
+    : `${yoyArrow(closedDelta)} ${yoyPct(currAvgClosed, prevAvgClosed)} vs ${prevAvgClosed.toFixed(1)} last FY`
+      + ` (${shortMonth(closedKeys[0])}–${shortMonth(closedKeys[closedKeys.length - 1])})`, true);
+
+  /* FY Chargeable → the chargeable SHARE in percentage points, because the raw
+     count simply follows call volume. Compared against the whole prior FY. */
+  const prevCharge = prevStats.reduce((s, m) => s + m.chargeable, 0);
+  const currShare  = pct(fyCharge, fyTotal);
+  const prevShare  = pct(prevCharge, prevTotal);
+  const shareDelta = prevTotal ? currShare - prevShare : 0;
+  setChip('fyChargeChip', shareDelta, prevTotal
+    ? `${yoyArrow(shareDelta)} ${shareDelta > 0 ? '+' : ''}${shareDelta.toFixed(1)} pts vs ${prevShare}% last FY`
+    : 'No prior FY data', true);
 
   /* Second row — this month against the same month last year. Both counted to
      the same day of the month so a part-finished month compares fairly. */
