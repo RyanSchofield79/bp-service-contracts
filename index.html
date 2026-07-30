@@ -40,9 +40,14 @@
     .kpi-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 6px; }
     .kpi-label .kpi-unit { font-weight: 600; text-transform: none; letter-spacing: 0; color: #b3bdb9; margin-left: 6px; }
     .kpi-value { font-size: 2rem; font-weight: 700; color: #1a1a1a; line-height: 1.1; }
+    .kpi-value.up   { color: #c0392b; }
+    .kpi-value.down { color: #1e8449; }
     .kpi-sub   { font-size: 0.78rem; color: #999; margin-top: 4px; }
     .kpi-sub.up   { color: #c0392b; font-weight: 600; }
     .kpi-sub.down { color: #1e7e34; font-weight: 600; }
+    .kpi-chip { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 7px; background: #eef1f0; color: #7a8b85; }
+    .kpi-chip.up   { background: #fdecea; color: #c0392b; }
+    .kpi-chip.down { background: #e8f6ec; color: #1e8449; }
     .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     .charts-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
     .chart-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
@@ -470,16 +475,20 @@
       </select>
     </div>
 
+    <div class="section-label">Financial year to date <span>— since 1 April</span></div>
+
     <div class="kpi-grid">
       <div class="kpi-card blue">
         <div class="kpi-label">FY Running Total</div>
         <div class="kpi-value" id="fyTotal">–</div>
         <div class="kpi-sub" id="fyTotalSub">Since 1 April</div>
+        <div class="kpi-chip" id="fyTotalChip">–</div>
       </div>
       <div class="kpi-card teal">
         <div class="kpi-label">Avg Raised / Month</div>
         <div class="kpi-value" id="fyAvgRaised">–</div>
         <div class="kpi-sub" id="fyAvgRaisedSub">Financial year to date</div>
+        <div class="kpi-chip" id="fyAvgRaisedChip">–</div>
       </div>
       <div class="kpi-card green">
         <div class="kpi-label">Avg Closed / Month</div>
@@ -490,6 +499,32 @@
         <div class="kpi-label">FY Chargeable</div>
         <div class="kpi-value" id="fyCharge">–</div>
         <div class="kpi-sub" id="fyChargeSub">Share of FY calls</div>
+      </div>
+    </div>
+
+    <div class="section-label">Year on year <span>— <b id="yoyLblNow">–</b> against <b id="yoyLblThen">–</b>, both counted to the same day of the month</span></div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card teal">
+        <div class="kpi-label"><span id="yoyNowLabel">This month</span> raised <span class="kpi-unit" id="yoyNowUnit"></span></div>
+        <div class="kpi-value" id="yoyNow">–</div>
+        <div class="kpi-sub" id="yoyNowSub">Current month</div>
+      </div>
+      <div class="kpi-card grey">
+        <div class="kpi-label"><span id="yoyThenLabel">Last year</span> raised <span class="kpi-unit" id="yoyThenUnit"></span></div>
+        <div class="kpi-value" id="yoyThen">–</div>
+        <div class="kpi-sub" id="yoyThenSub">Same month last year</div>
+      </div>
+      <div class="kpi-card green" id="yoyChangeCard">
+        <div class="kpi-label">Year on Year</div>
+        <div class="kpi-value" id="yoyChange">–</div>
+        <div class="kpi-sub" id="yoyChangeSub">–</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label" id="yoyPrevAvgLabel">Prev FY Monthly Average</div>
+        <div class="kpi-value" id="yoyPrevAvg">–</div>
+        <div class="kpi-sub" id="yoyPrevAvgSub">–</div>
+        <div class="kpi-chip" id="yoyPrevAvgChip">–</div>
       </div>
     </div>
 
@@ -800,6 +835,68 @@ function monthStats(key, filter) {
 }
 function fyMonthKeys() { return MONTH_KEYS.filter(k => k >= FY_START_KEY); }
 
+/* ── year-on-year helpers ────────────────────────────────────────────────────
+   The reporting window deliberately reaches back to the start of the PREVIOUS
+   financial year, so the same month last year and the whole of last FY are
+   already in the payload — no extra API call is needed.
+
+   Every comparison is trimmed to the same day of the month / same day of the
+   year, because the current month and the current FY are both part-finished.
+   Comparing 30 days against a full 31-day month would overstate the fall.   */
+function shiftMonthKey(key, months) {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + months, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+function prevFyMonthKeys() {
+  const from = shiftMonthKey(FY_START_KEY, -12);
+  return MONTH_KEYS.filter(k => k >= from && k < FY_START_KEY);
+}
+/* Calls raised in `key`, counted only up to `dayCap` of that month. */
+function raisedToDay(key, filter, dayCap) {
+  return CALLS.filter(filter).filter(c => {
+    if (c.monthKey !== key) return false;
+    const d = new Date(c.dateAdded);
+    return !isNaN(d) && d.getUTCDate() <= dayCap;
+  }).length;
+}
+/* Calls raised between the start of a financial year and the same calendar
+   point we have reached in the current one. offsetYears is 0 or -1.          */
+function fyRaisedToDate(offsetYears, filter) {
+  const [fy, fm] = FY_START_KEY.split('-').map(Number);
+  const start = new Date(Date.UTC(fy + offsetYears, fm - 1, 1));
+  const now   = new Date();
+  const cut   = new Date(Date.UTC(now.getUTCFullYear() + offsetYears, now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+  return CALLS.filter(filter).filter(c => {
+    const d = new Date(c.dateAdded);
+    return !isNaN(d) && d >= start && d <= cut;
+  }).length;
+}
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+/* Fewer calls raised is the good direction, so a fall is green. */
+const yoyDir = delta => delta === 0 ? '' : (delta < 0 ? 'down' : 'up');
+const yoyArrow = delta => delta === 0 ? '–' : (delta > 0 ? '▲' : '▼');
+function yoyPct(now, then) {
+  if (!then) return '–';
+  const p = (now - then) / then * 100;
+  return (p > 0 ? '+' : '') + p.toFixed(1).replace(/\.0$/, '') + '%';
+}
+function setChip(id, delta, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'kpi-chip ' + yoyDir(delta);
+  el.textContent = text;
+}
+function setSub(id, delta, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'kpi-sub ' + yoyDir(delta);
+  el.textContent = text;
+}
+
 function buildMonthSelect(id) {
   const sel = document.getElementById(id);
   sel.innerHTML = '';
@@ -1038,6 +1135,65 @@ function renderTrendsTab() {
   setText('fyAvgClosedSub', `${num(fyClosed)} closed over ${fyKeys.length} month${fyKeys.length === 1 ? '' : 's'}`);
   setText('fyCharge', num(fyCharge));
   setText('fyChargeSub', `${pct(fyCharge, fyTotal)}% chargeable · ${num(fyWarranty)} warranty`);
+
+  /* ── year-on-year comparisons ──────────────────────────────────────────── */
+  const prevKeys  = prevFyMonthKeys();
+  const prevStats = prevKeys.map(k => monthStats(k, filter));
+  const prevTotal = prevStats.reduce((s, m) => s + m.raised, 0);
+  const prevAvg   = prevKeys.length ? prevTotal / prevKeys.length : null;
+  const prevFyLbl = prevKeys.length
+    ? `${monthLabel(prevKeys[0])} – ${monthLabel(prevKeys[prevKeys.length - 1])}`
+    : 'previous FY';
+
+  // FY Running Total → the same point in last financial year.
+  const fyPrevToDate = fyRaisedToDate(-1, filter);
+  const fyDelta      = fyTotal - fyPrevToDate;
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  setChip('fyTotalChip', fyDelta,
+    `${yoyArrow(fyDelta)} ${yoyPct(fyTotal, fyPrevToDate)} vs ${num(fyPrevToDate)} to ${today} last FY`);
+
+  // Avg Raised / Month → last financial year's monthly average.
+  const avgDelta = prevAvg == null ? 0 : (fyTotal / (fyKeys.length || 1)) - prevAvg;
+  setChip('fyAvgRaisedChip', avgDelta, prevAvg == null ? 'No prior FY data'
+    : `${yoyArrow(avgDelta)} ${yoyPct(fyTotal / (fyKeys.length || 1), prevAvg)} vs ${prevAvg.toFixed(1)} last FY`);
+
+  /* Second row — this month against the same month last year. Both counted to
+     the same day of the month so a part-finished month compares fairly. */
+  const nowKey  = fyKeys[fyKeys.length - 1] || MONTH_KEYS[MONTH_KEYS.length - 1];
+  const thenKey = shiftMonthKey(nowKey, -12);
+  const dayCap  = new Date().getUTCDate();
+  const nowVal  = raisedToDay(nowKey,  filter, dayCap);
+  const thenVal = raisedToDay(thenKey, filter, dayCap);
+  const yoyDelta = nowVal - thenVal;
+  const unit = `(to ${ordinal(dayCap)})`;
+
+  setText('yoyLblNow',  monthLabel(nowKey));
+  setText('yoyLblThen', monthLabel(thenKey));
+  setText('yoyNowLabel',  monthLabel(nowKey));
+  setText('yoyThenLabel', monthLabel(thenKey));
+  setText('yoyNowUnit',  unit);
+  setText('yoyThenUnit', unit);
+  setText('yoyNow',  num(nowVal));
+  setText('yoyThen', num(thenVal));
+  setText('yoyNowSub',  `${scopeLbl} · current month to date`);
+  setText('yoyThenSub', `${scopeLbl} · same period last year`);
+
+  setText('yoyChange', `${yoyArrow(yoyDelta)} ${yoyPct(nowVal, thenVal)}`);
+  const yoyValEl = document.getElementById('yoyChange');
+  if (yoyValEl) yoyValEl.className = 'kpi-value ' + yoyDir(yoyDelta);
+  setSub('yoyChangeSub', yoyDelta,
+    `${yoyDelta > 0 ? '+' : ''}${yoyDelta} calls vs ${monthLabel(thenKey)}`);
+  const changeCard = document.getElementById('yoyChangeCard');
+  if (changeCard) changeCard.className = 'kpi-card ' + (yoyDelta > 0 ? 'orange' : 'green');
+
+  const prevAvgDelta = prevAvg == null ? 0 : nowVal - prevAvg;
+  setText('yoyPrevAvg', prevAvg == null ? '–' : prevAvg.toFixed(1));
+  setText('yoyPrevAvgLabel', prevKeys.length ? 'FY Monthly Average — Prior Year' : 'Prev FY Monthly Average');
+  setText('yoyPrevAvgSub', prevKeys.length
+    ? `${prevFyLbl} · ${prevKeys.length} month${prevKeys.length === 1 ? '' : 's'}`
+    : 'No prior FY data');
+  setChip('yoyPrevAvgChip', prevAvgDelta, prevAvg == null ? '–'
+    : `${yoyArrow(prevAvgDelta)} ${yoyPct(nowVal, prevAvg)} this month`);
 
   const allStats = MONTH_KEYS.map(k => monthStats(k, filter));
   const labels   = MONTH_KEYS.map(monthLabel);
