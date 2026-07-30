@@ -192,6 +192,29 @@ exports.handler = async (event) => {
       return json(200, { leadTypes: lt, projectTypes: pt });
     }
 
+    // Raw shapes, so we can see exactly which fields BP exposes on a service
+    // call and on a contract without guessing from the mapped output.
+    if (debug === 'raw') {
+      const raw = unwrap(await apiPost(API_KEY, '/ServiceCalls/find', {}));
+      const one = raw.items[0] || {};
+      const filt = unwrap(await apiPost(API_KEY, '/Contracts/find', { contractType: CHARGEABLE_TYPE }));
+      const c = filt.items[0] || {};
+      return json(200, {
+        callKeys:     Object.keys(one),
+        callSample:   raw.items.slice(0, 3),
+        contractKeys: Object.keys(c),
+        leadKeys:     Object.keys(c.lead || {}),
+        contractSampleProduct: {
+          contractNumber: c.contractNumber,
+          productType1: (c.lead || {}).productType1,
+          productType2: (c.lead || {}).productType2,
+          productType3: (c.lead || {}).productType3,
+          productInterest: (c.lead || {}).productInterest,
+        },
+        typedContractCount: filt.items.length,
+      });
+    }
+
     if (debug === 'type') {
       const type = q.type || CHARGEABLE_TYPE;
       const r = await typedContracts(API_KEY, type).catch(e => ({ error: e.message, items: [], itemCount: 0 }));
