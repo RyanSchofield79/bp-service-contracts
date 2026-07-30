@@ -50,6 +50,8 @@
     .kpi-chip.down { background: #e8f6ec; color: #1e8449; }
     .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     .charts-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
+    .charts-row.single { grid-template-columns: 1fr; }
+    .chart-note { font-size: 0.8rem; color: #888; text-align: center; padding: 40px 10px; line-height: 1.5; }
     .chart-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .chart-card h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 16px; }
     .chart-wrap { position: relative; height: 280px; }
@@ -297,6 +299,16 @@
         <div class="chart-wrap"><canvas id="scChartMix"></canvas></div>
       </div>
       <div class="chart-card">
+        <h2>Calls by Product Type</h2>
+        <div class="chart-wrap">
+          <div class="chart-note" id="scProductNote">Loading product types…</div>
+          <canvas id="scChartProduct"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-row single">
+      <div class="chart-card">
         <h2>Open Calls by Age</h2>
         <div class="chart-wrap"><canvas id="scChartAge"></canvas></div>
       </div>
@@ -307,7 +319,7 @@
       <table>
         <thead>
           <tr>
-            <th>Contract #</th><th>Customer</th><th>Raised</th><th>Appointment</th>
+            <th>Contract #</th><th>Customer</th><th>Product Type</th><th>Raised</th><th>Appointment</th>
             <th>Billing</th><th>Status</th><th>Booked For</th>
           </tr>
         </thead>
@@ -320,7 +332,7 @@
       <table>
         <thead>
           <tr>
-            <th>Contract #</th><th>Customer</th><th>Raised</th><th class="num">Age (days)</th>
+            <th>Contract #</th><th>Customer</th><th>Product Type</th><th>Raised</th><th class="num">Age (days)</th>
             <th>Billing</th><th>Status</th><th>Appointment</th><th>Age</th>
           </tr>
         </thead>
@@ -415,7 +427,32 @@
       </div>
     </div>
 
-    <div class="charts-row">
+    <div class="section-label">Year on year <span>— <b id="acYoyPeriodLbl">–</b> against <b id="acYoyThenLbl">–</b>, counted to the same point</span></div>
+    <div class="kpi-grid">
+      <div class="kpi-card teal">
+        <div class="kpi-label"><span id="acYoyNowLabel">This period</span> raised <span class="kpi-unit" id="acYoyUnit"></span></div>
+        <div class="kpi-value" id="acYoyNow">–</div>
+        <div class="kpi-sub" id="acYoyNowSub">–</div>
+      </div>
+      <div class="kpi-card grey">
+        <div class="kpi-label"><span id="acYoyThenLabel">Last year</span> raised <span class="kpi-unit" id="acYoyUnit2"></span></div>
+        <div class="kpi-value" id="acYoyThen">–</div>
+        <div class="kpi-sub" id="acYoyThenSub">–</div>
+      </div>
+      <div class="kpi-card green" id="acYoyChangeCard">
+        <div class="kpi-label">Year on Year</div>
+        <div class="kpi-value" id="acYoyChange">–</div>
+        <div class="kpi-sub" id="acYoyChangeSub">–</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">FY Monthly Average — Prior Year</div>
+        <div class="kpi-value" id="acYoyPrevAvg">–</div>
+        <div class="kpi-sub" id="acYoyPrevAvgSub">–</div>
+        <div class="kpi-chip" id="acYoyPrevAvgChip">–</div>
+      </div>
+    </div>
+
+    <div class="charts-row thirds">
       <div class="chart-card">
         <h2>Calls by Type</h2>
         <div class="chart-wrap"><canvas id="acChartType"></canvas></div>
@@ -423,6 +460,13 @@
       <div class="chart-card">
         <h2>Calls by Booked For</h2>
         <div class="chart-wrap"><canvas id="acChartBooked"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Calls by Product Type</h2>
+        <div class="chart-wrap">
+          <div class="chart-note" id="acProductNote">Loading product types…</div>
+          <canvas id="acChartProduct"></canvas>
+        </div>
       </div>
     </div>
 
@@ -442,7 +486,7 @@
       <table>
         <thead>
           <tr>
-            <th>Contract #</th><th>Customer</th><th>Raised</th><th>Appointment</th>
+            <th>Contract #</th><th>Customer</th><th>Product Type</th><th>Raised</th><th>Appointment</th>
             <th>Call Type</th><th>Billing</th><th>Status</th><th>Booked For</th>
           </tr>
         </thead>
@@ -455,7 +499,7 @@
       <table>
         <thead>
           <tr>
-            <th>Contract #</th><th>Customer</th><th>Raised</th><th class="num">Age (days)</th>
+            <th>Contract #</th><th>Customer</th><th>Product Type</th><th>Raised</th><th class="num">Age (days)</th>
             <th>Call Type</th><th>Billing</th><th>Status</th><th>Appointment</th><th>Age</th>
           </tr>
         </thead>
@@ -584,6 +628,51 @@ function sortStatuses(labels) {
 function statusColour(label, idx) {
   const key = Object.keys(STATUS_COLOURS).find(k => k.toLowerCase() === String(label).toLowerCase());
   return key ? STATUS_COLOURS[key] : colourFor(idx + 5);
+}
+
+/* ── doughnut colours that do not move ───────────────────────────────────────
+   Colours used to be taken from a segment's POSITION in the chart, and the
+   segments are ordered by size — so filtering the tab, or one call type simply
+   overtaking another, silently repainted everything. Every category now gets a
+   colour from its own identity instead: a fixed colour for the known call
+   types, and for the open-ended lists (engineers, product types) a colour from
+   the category's place in the alphabetical list of everything in the window.
+   Neither depends on the current counts, so a segment keeps its colour as you
+   move between months and filters. */
+const CALL_TYPE_COLOURS = {
+  'Service':     '#527F6E',   // house green — the bulk of the work
+  'Remedial':    '#fd7e14',
+  'Audit':       '#17a2b8',
+  'Pre-Install': '#6f42c1',
+  'Dispute':     '#dc3545',
+  'Delivery':    '#20c997',
+};
+const NEUTRAL_COLOUR = '#adb5bd';        // blanks — "not booked", "not recorded"
+const ROLLUP_COLOUR  = '#ced4da';        // the "Other" bucket from topN
+let TYPE_ORDER = [], BOOKED_ORDER = [], PRODUCT_ORDER = [];
+function orderColour(order, label, offset) {
+  const i = order.indexOf(label);
+  return i === -1 ? NEUTRAL_COLOUR : colourFor(i + (offset || 0));
+}
+function callTypeColour(label) {
+  if (label === 'Other') return ROLLUP_COLOUR;
+  return CALL_TYPE_COLOURS[label] || orderColour(TYPE_ORDER, label, 6);
+}
+function bookedColour(label) {
+  if (label === 'Other')       return ROLLUP_COLOUR;
+  if (label === BOOKED_BLANK)  return NEUTRAL_COLOUR;
+  return orderColour(BOOKED_ORDER, label, 2);
+}
+function productColour(label) {
+  if (label === 'Other')        return ROLLUP_COLOUR;
+  if (label === PRODUCT_BLANK)  return NEUTRAL_COLOUR;
+  return orderColour(PRODUCT_ORDER, label, 1);
+}
+function buildColourOrders() {
+  const uniq = f => [...new Set(CALLS.map(f))].filter(Boolean).sort();
+  TYPE_ORDER    = uniq(c => c.callType || 'Unknown');
+  BOOKED_ORDER  = uniq(c => c.engineer).filter(v => v !== BOOKED_BLANK);
+  PRODUCT_ORDER = uniq(productOf).filter(v => v !== PRODUCT_BLANK);
 }
 
 const fmt = v => '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -793,6 +882,24 @@ const SERVICE_ONLY = c => c.callType === 'Service';
 const ANY_TYPE     = () => true;
 const BOOKED_BLANK = '(not booked)';
 
+/* ── product type ────────────────────────────────────────────────────────────
+   A service call holds nothing about what was installed — product type lives on
+   the lead behind the contract, and joining the two means reading the whole
+   contract book (37k records, ~20s). That is far too slow to sit in front of
+   the dashboard, so /api/call-products is fetched in the BACKGROUND after the
+   page has already rendered, and the product charts fill in when it lands.
+   About 85% of calls resolve; the rest have no product recorded on the job. */
+const PRODUCT_BLANK = 'Not recorded';
+let PRODUCTS      = null;        // { types: [...], map: { contractNumber: typeIndex } }
+let PRODUCT_STATE = 'loading';   // loading | ready | failed
+let PRODUCT_ERROR = '';
+const shortProduct = s => String(s).replace(/\s*\(\d+\)\s*$/, '').trim();
+function productOf(c) {
+  if (!PRODUCTS) return PRODUCT_BLANK;
+  const i = PRODUCTS.map[c.contractNumber];
+  return i === undefined ? PRODUCT_BLANK : (PRODUCTS.shortTypes[i] || PRODUCT_BLANK);
+}
+
 /* All Calls is filtered by the two dropdowns at the head of that tab. Read at
    render time so the same panel code serves both tabs. */
 function acFilter(c) {
@@ -809,21 +916,26 @@ const PANELS = [
   { p: 'ac', filter: acFilter,     label: 'All' },
 ];
 
-function monthStats(key, filter) {
+/* Stats over a SET of months, so one code path serves both a single month and
+   the financial year to date. */
+function periodStats(keys, filter) {
+  const inKeys  = new Set(keys);
+  const first   = keys[0];
   const set     = CALLS.filter(filter);
-  const inMonth = set.filter(c => c.monthKey === key);
+  const inMonth = set.filter(c => inKeys.has(c.monthKey));
   const closed  = inMonth.filter(c => c.isClosed).length;
   const charge  = inMonth.filter(c => c.billing === 'Chargeable').length;
 
-  // Activity basis: calls CLOSED during this month, whenever they were raised.
-  const closedThisMonth = set.filter(c => c.closedMonthKey === key);
-  const fromPrior       = closedThisMonth.filter(c => c.monthKey < key);
+  // Activity basis: calls CLOSED during the period, whenever they were raised.
+  const closedThisMonth = set.filter(c => c.closedMonthKey && inKeys.has(c.closedMonthKey));
+  const fromPrior       = closedThisMonth.filter(c => c.monthKey < first);
   const days = closedThisMonth
     .map(c => (new Date(c.lastAppointment) - new Date(c.dateAdded)) / 86400000)
     .filter(d => isFinite(d) && d >= 0);
 
   return {
-    key,
+    key:        keys[keys.length - 1],
+    keys,
     raised:     inMonth.length,
     closed,
     open:       inMonth.length - closed,
@@ -834,6 +946,24 @@ function monthStats(key, filter) {
     closedFromPrior: fromPrior.length,
     avgDaysToClose:  days.length ? days.reduce((a, b) => a + b, 0) / days.length : null,
   };
+}
+function monthStats(key, filter) { return periodStats([key], filter); }
+
+/* The month dropdowns carry one extra entry above the months. */
+const YTD_KEY = '__YTD__';
+function selectedPeriod(P) {
+  const v = (document.getElementById(P + 'MonthSelect') || {}).value;
+  if (!v) return null;
+  if (v === YTD_KEY) {
+    const keys = fyMonthKeys();
+    if (!keys.length) return null;
+    return {
+      isYtd: true, keys,
+      label:      `${monthLabel(keys[0])} – ${monthLabel(keys[keys.length - 1])} (FY to date)`,
+      shortLabel: 'the year to date',
+    };
+  }
+  return { isYtd: false, keys: [v], label: monthLabel(v), shortLabel: monthLabel(v) };
 }
 function fyMonthKeys() { return MONTH_KEYS.filter(k => k >= FY_START_KEY); }
 
@@ -909,6 +1039,10 @@ const shortMonth = key => MONTH_NAMES[Number(key.split('-')[1]) - 1];
 function buildMonthSelect(id) {
   const sel = document.getElementById(id);
   sel.innerHTML = '';
+  const ytd = document.createElement('option');
+  ytd.value = YTD_KEY;
+  ytd.textContent = 'Financial year to date';
+  sel.appendChild(ytd);
   [...MONTH_KEYS].reverse().forEach(k => {
     const o = document.createElement('option');
     o.value = k; o.textContent = monthLabel(k);
@@ -944,14 +1078,22 @@ function buildAllCallsFilters() {
 
 function renderCallsPanel(cfg) {
   const P = cfg.p;
-  const key = document.getElementById(P + 'MonthSelect').value;
-  if (!key) return;
+  const period = selectedPeriod(P);
+  if (!period) return;
+  const key    = period.keys[period.keys.length - 1];
   const nowKey = new Date().toISOString().slice(0, 7);
-  document.getElementById(P + 'MonthNote').style.display = key === nowKey ? '' : 'none';
-  [P + 'TableMonth', P + 'LblA', P + 'LblB', P + 'LblC'].forEach(id => setText(id, monthLabel(key)));
+  const isLive = period.keys.includes(nowKey);   // period runs up to today
+
+  const mNote = document.getElementById(P + 'MonthNote');
+  mNote.style.display = isLive ? '' : 'none';
+  mNote.textContent = period.isYtd
+    ? 'Includes the current month – figures are to date'
+    : 'Current month – figures are month to date';
+  [P + 'TableMonth', P + 'LblA', P + 'LblB', P + 'LblC'].forEach(id => setText(id, period.label));
 
   const set  = CALLS.filter(cfg.filter);
-  const s    = monthStats(key, cfg.filter);
+  const s    = periodStats(period.keys, cfg.filter);
+  const inPeriod = new Set(period.keys);
 
   if (P === 'ac') {
     const t = document.getElementById('acTypeFilter').value;
@@ -961,8 +1103,19 @@ function renderCallsPanel(cfg) {
       ? `${bits.join(' · ')} — ${num(set.length)} of ${num(CALLS.length)} calls`
       : 'All call types');
   }
-  const idx  = MONTH_KEYS.indexOf(key);
-  const prev = idx > 0 ? monthStats(MONTH_KEYS[idx - 1], cfg.filter) : null;
+  /* What the raised figure is measured against: the month before for a single
+     month, and the same span a year earlier for the year to date. */
+  let prev = null, prevLabel = '';
+  if (period.isYtd) {
+    const pk = period.keys.map(k => shiftMonthKey(k, -12)).filter(k => MONTH_KEYS.includes(k));
+    if (pk.length) {
+      prev = periodStats(pk, cfg.filter);
+      prevLabel = `${monthLabel(pk[0])}–${monthLabel(pk[pk.length - 1])}`;
+    }
+  } else {
+    const idx = MONTH_KEYS.indexOf(key);
+    if (idx > 0) { prev = monthStats(MONTH_KEYS[idx - 1], cfg.filter); prevLabel = monthLabel(MONTH_KEYS[idx - 1]); }
+  }
 
   const fyKeys  = fyMonthKeys();
   const fyCalls = set.filter(c => c.monthKey >= FY_START_KEY && c.inWindow);
@@ -973,13 +1126,13 @@ function renderCallsPanel(cfg) {
   const rSub = document.getElementById(P + 'RaisedSub');
   if (prev) {
     const diff = s.raised - prev.raised;
-    rSub.textContent = `${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)} vs ${monthLabel(prev.key)} (${num(prev.raised)})`;
+    rSub.textContent = `${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)} vs ${prevLabel} (${num(prev.raised)})`;
     rSub.className = 'kpi-sub ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '');
   } else {
-    rSub.textContent = 'No previous month in range';
+    rSub.textContent = 'No comparable earlier period in range';
   }
   setText(P + 'Closed', num(s.closed));
-  setText(P + 'ClosedSub', `${pct(s.closed, s.raised)}% of calls raised this month`);
+  setText(P + 'ClosedSub', `${pct(s.closed, s.raised)}% of calls raised in ${period.shortLabel}`);
   setText(P + 'Open', num(s.open));
   setText(P + 'OpenSub', `${pct(s.open, s.raised)}% still to close`);
   setText(P + 'Avg', fyAvg.toFixed(1));
@@ -987,9 +1140,9 @@ function renderCallsPanel(cfg) {
 
   // ── billing mix ──
   setText(P + 'Warranty', num(s.warranty));
-  setText(P + 'WarrantySub', `${pct(s.warranty, s.raised)}% of the month`);
+  setText(P + 'WarrantySub', `${pct(s.warranty, s.raised)}% of the period`);
   setText(P + 'Charge', num(s.chargeable));
-  setText(P + 'ChargeSub', `${pct(s.chargeable, s.raised)}% of the month`);
+  setText(P + 'ChargeSub', `${pct(s.chargeable, s.raised)}% of the period`);
   setText(P + 'Ratio', s.chargeable > 0
     ? (s.warranty / s.chargeable).toFixed(1) + ' : 1'
     : (s.warranty > 0 ? s.warranty + ' : 0' : '–'));
@@ -998,20 +1151,20 @@ function renderCallsPanel(cfg) {
   const net = s.raised - s.closedInMonth;
   setText(P + 'Net', (net > 0 ? '+' : '') + num(net));
   const netSub = document.getElementById(P + 'NetSub');
-  netSub.textContent = net > 0 ? 'Backlog grew this month'
-                     : net < 0 ? 'Backlog reduced this month'
+  netSub.textContent = net > 0 ? 'Backlog grew over the period'
+                     : net < 0 ? 'Backlog reduced over the period'
                                : 'Backlog unchanged';
   netSub.className = 'kpi-sub ' + (net > 0 ? 'up' : net < 0 ? 'down' : '');
 
-  // ── closed during the month ──
+  // ── closed during the period ──
   setText(P + 'ClosedAct', num(s.closedInMonth));
-  setText(P + 'ClosedActSub', `${num(s.closedInMonth - s.closedFromPrior)} of them raised in ${monthLabel(key)}`);
+  setText(P + 'ClosedActSub', `${num(s.closedInMonth - s.closedFromPrior)} of them raised in ${period.shortLabel}`);
   setText(P + 'ClosedPrior', num(s.closedFromPrior));
-  setText(P + 'ClosedPriorSub', `${pct(s.closedFromPrior, s.closedInMonth)}% of everything closed this month`);
+  setText(P + 'ClosedPriorSub', `${pct(s.closedFromPrior, s.closedInMonth)}% of everything closed in the period`);
   setText(P + 'AvgDays', s.avgDaysToClose == null ? '–' : s.avgDaysToClose.toFixed(1));
   const same = s.closedInMonth - s.closedFromPrior;
   setText(P + 'Same', num(same));
-  setText(P + 'SameSub', `${pct(same, s.closedInMonth)}% of everything closed this month`);
+  setText(P + 'SameSub', `${pct(same, s.closedInMonth)}% of everything closed in the period`);
 
   // ── open backlog: every open call, any month ──
   const backlog = set.filter(c => !c.isClosed)
@@ -1022,7 +1175,7 @@ function renderCallsPanel(cfg) {
   const avgAge = backlog.length ? backlog.reduce((t, c) => t + c.age, 0) / backlog.length : 0;
 
   setText(P + 'BkTotal', num(backlog.length));
-  setText(P + 'BkTotalSub', `${num(backlog.filter(c => c.monthKey === key).length)} raised in ${monthLabel(key)}`);
+  setText(P + 'BkTotalSub', `${num(backlog.filter(c => inPeriod.has(c.monthKey)).length)} raised in ${period.shortLabel}`);
   setText(P + 'BkOldest', backlog.length ? num(backlog[0].age) : '–');
   setText(P + 'BkOldestSub', backlog.length ? `Raised ${dateStr(backlog[0].dateAdded)}` : 'Days since raised');
   setText(P + 'BkAvgAge', backlog.length ? avgAge.toFixed(0) : '–');
@@ -1051,21 +1204,45 @@ function renderCallsPanel(cfg) {
     const t = topN(byType, 10);
     drawChart(P + 'Type', P + 'ChartType', {
       type: 'doughnut',
-      data: { labels: t.map(e => e[0]), datasets: [{ data: t.map(e => e[1]), backgroundColor: t.map((_,i) => colourFor(i)), borderWidth: 2, borderColor: '#fff' }] },
+      data: { labels: t.map(e => e[0]), datasets: [{ data: t.map(e => e[1]), backgroundColor: t.map(e => callTypeColour(e[0])), borderWidth: 2, borderColor: '#fff' }] },
       options: doughnutOpts()
     });
   }
 
   if (document.getElementById(P + 'ChartBooked')) {
     const byWho = {};
-    s.calls.forEach(c => { const k = c.engineer || '(not booked)'; byWho[k] = (byWho[k]||0)+1; });
+    s.calls.forEach(c => { const k = c.engineer || BOOKED_BLANK; byWho[k] = (byWho[k]||0)+1; });
     const t = topN(byWho, 9);
     drawChart(P + 'Booked', P + 'ChartBooked', {
       type: 'doughnut',
-      data: { labels: t.map(e => e[0]), datasets: [{ data: t.map(e => e[1]), backgroundColor: t.map((_,i) => colourFor(i + 2)), borderWidth: 2, borderColor: '#fff' }] },
+      data: { labels: t.map(e => e[0]), datasets: [{ data: t.map(e => e[1]), backgroundColor: t.map(e => bookedColour(e[0])), borderWidth: 2, borderColor: '#fff' }] },
       options: doughnutOpts()
     });
   }
+
+  // ── product type: arrives on the background fetch, so it has a waiting state ──
+  if (document.getElementById(P + 'ChartProduct')) {
+    const note = document.getElementById(P + 'ProductNote');
+    if (PRODUCT_STATE !== 'ready') {
+      note.style.display = '';
+      note.textContent = PRODUCT_STATE === 'loading'
+        ? 'Looking up product types… this reads the whole contract book, so it takes a few seconds.'
+        : 'Product types unavailable' + (PRODUCT_ERROR ? ' — ' + PRODUCT_ERROR : '');
+      if (charts[P + 'Product']) { charts[P + 'Product'].destroy(); charts[P + 'Product'] = null; }
+    } else {
+      note.style.display = 'none';
+      const byProd = {};
+      s.calls.forEach(c => { const k = productOf(c); byProd[k] = (byProd[k]||0)+1; });
+      const t = topN(byProd, 10);
+      drawChart(P + 'Product', P + 'ChartProduct', {
+        type: 'doughnut',
+        data: { labels: t.map(e => e[0]), datasets: [{ data: t.map(e => e[1]), backgroundColor: t.map(e => productColour(e[0])), borderWidth: 2, borderColor: '#fff' }] },
+        options: doughnutOpts()
+      });
+    }
+  }
+
+  if (P === 'ac') renderYoyLine(period, cfg.filter, isLive);
 
   const bandCounts = AGE_BANDS.map(b => backlog.filter(c => b.test(c.age)).length);
   drawChart(P + 'Age', P + 'ChartAge', {
@@ -1090,13 +1267,14 @@ function renderCallsPanel(cfg) {
       : '<span class="badge badge-warranty">Warranty</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td>`
+      + `<td>${esc(productOf(c))}</td>`
       + `<td>${dateStr(c.dateAdded)}</td><td>${dateStr(c.lastAppointment)}</td>`
       + (showType ? `<td>${esc(c.callType)}</td>` : '')
       + `<td>${billBadge}</td><td>${statusBadge}</td><td>${esc(c.engineer) || '–'}</td>`;
     tbody.appendChild(tr);
   });
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${showType ? 8 : 7}" style="text-align:center;color:#999;padding:20px">No calls raised in this month</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${showType ? 9 : 8}" style="text-align:center;color:#999;padding:20px">No calls raised in ${esc(period.shortLabel)}</td></tr>`;
   }
 
   // ── open backlog table, oldest first ──
@@ -1112,6 +1290,7 @@ function renderCallsPanel(cfg) {
       : '<span class="badge badge-warranty">Warranty</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${esc(c.contractNumber)}</td><td>${esc(c.customer)}</td>`
+      + `<td>${esc(productOf(c))}</td>`
       + `<td>${dateStr(c.dateAdded)}</td><td class="num">${c.age}</td>`
       + (showType ? `<td>${esc(c.callType)}</td>` : '')
       + `<td>${bill}</td><td><span class="badge badge-open">${esc(c.status || 'Open')}</span></td>`
@@ -1119,8 +1298,68 @@ function renderCallsPanel(cfg) {
     ob.appendChild(tr);
   });
   if (backlog.length === 0) {
-    ob.innerHTML = `<tr><td colspan="${showType ? 9 : 8}" style="text-align:center;color:#999;padding:20px">No open calls</td></tr>`;
+    ob.innerHTML = `<tr><td colspan="${showType ? 10 : 9}" style="text-align:center;color:#999;padding:20px">No open calls</td></tr>`;
   }
+}
+
+/* ── year-on-year line on All Calls ──────────────────────────────────────────
+   Follows the period selector AND the Type / Booked For filters, so filtering
+   to Remedial compares Remedial with Remedial. A part-finished period is only
+   ever compared against the same part of last year. */
+function renderYoyLine(period, filter, isLive) {
+  const dayCap = new Date().getUTCDate();
+  let nowVal, thenVal, nowLbl, thenLbl, thenShort, unit;
+
+  if (period.isYtd) {
+    nowVal  = fyRaisedToDate(0,  filter);
+    thenVal = fyRaisedToDate(-1, filter);
+    nowLbl  = 'FY to date';
+    thenLbl = 'Last FY, same period';
+    thenShort = 'the same period last FY';
+    unit    = `(to ${ordinal(dayCap)} ${shortMonth(period.keys[period.keys.length - 1])})`;
+  } else {
+    const k = period.keys[0], p = shiftMonthKey(k, -12);
+    const cap = isLive ? dayCap : 31;      // a finished month is compared whole
+    nowVal  = raisedToDay(k, filter, cap);
+    thenVal = raisedToDay(p, filter, cap);
+    nowLbl  = monthLabel(k);
+    thenLbl = monthLabel(p);
+    thenShort = monthLabel(p);
+    unit    = isLive ? `(to ${ordinal(dayCap)})` : '';
+  }
+
+  const delta = nowVal - thenVal;
+  setText('acYoyPeriodLbl', nowLbl);
+  setText('acYoyThenLbl',   thenLbl);
+  setText('acYoyNowLabel',  nowLbl);
+  setText('acYoyThenLabel', thenLbl);
+  setText('acYoyUnit',  unit);
+  setText('acYoyUnit2', period.isYtd ? '' : unit);
+  setText('acYoyNow',  num(nowVal));
+  setText('acYoyThen', num(thenVal));
+  setText('acYoyNowSub',  period.isYtd ? 'Since 1 April, to today' : 'Calls raised');
+  setText('acYoyThenSub', 'Same point a year earlier');
+
+  setText('acYoyChange', `${yoyArrow(delta)} ${yoyPct(nowVal, thenVal)}`);
+  const cv = document.getElementById('acYoyChange');
+  if (cv) cv.className = 'kpi-value ' + yoyDir(delta);
+  setSub('acYoyChangeSub', delta, `${delta > 0 ? '+' : ''}${delta} calls vs ${thenShort}`);
+  const card = document.getElementById('acYoyChangeCard');
+  if (card) card.className = 'kpi-card ' + (delta > 0 ? 'orange' : 'green');
+
+  const prevKeys  = prevFyMonthKeys();
+  const prevTotal = prevKeys.reduce((t, k) => t + monthStats(k, filter).raised, 0);
+  const prevAvg   = prevKeys.length ? prevTotal / prevKeys.length : null;
+  // For the year to date the like-for-like figure is THIS year's monthly rate.
+  const rate = period.isYtd ? nowVal / period.keys.length : nowVal;
+  const rDelta = prevAvg == null ? 0 : rate - prevAvg;
+
+  setText('acYoyPrevAvg', prevAvg == null ? '–' : prevAvg.toFixed(1));
+  setText('acYoyPrevAvgSub', prevKeys.length
+    ? `${monthLabel(prevKeys[0])} – ${monthLabel(prevKeys[prevKeys.length - 1])} · ${prevKeys.length} months`
+    : 'No prior FY data');
+  setChip('acYoyPrevAvgChip', rDelta, prevAvg == null ? '–'
+    : `${yoyArrow(rDelta)} ${yoyPct(rate, prevAvg)} ${period.isYtd ? 'this FY' : 'this month'}`);
 }
 
 /* ═══════════════════ TAB 4 — trends ═══════════════════ */
@@ -1327,6 +1566,33 @@ async function loadServiceCalls(fresh) {
 
   PANELS.forEach(cfg => buildMonthSelect(cfg.p + 'MonthSelect'));
   buildAllCallsFilters();
+  buildColourOrders();
+}
+
+/* Deliberately NOT awaited by loadData. Reading the whole contract book to get
+   product type takes roughly 20 seconds, so the dashboard renders first and the
+   product charts fill themselves in when this lands. */
+async function loadProducts(fresh) {
+  PRODUCT_STATE = 'loading';
+  PRODUCT_ERROR = '';
+  try {
+    const res  = await fetch(`/api/call-products?t=${Date.now()}${fresh ? '&fresh=1' : ''}`, { cache: 'no-store' });
+    const data = await res.json().catch(() => ({ error: `Product API returned ${res.status}` }));
+    if (!res.ok || data.error) throw new Error(data.error || `Product API returned ${res.status}`);
+    PRODUCTS = {
+      map:        data.map || {},
+      types:      data.types || [],
+      shortTypes: (data.types || []).map(shortProduct),
+    };
+    PRODUCT_STATE = 'ready';
+  } catch (e) {
+    PRODUCT_STATE = 'failed';
+    PRODUCT_ERROR = e.message;
+  }
+  if (CALLS.length) {
+    buildColourOrders();
+    PANELS.forEach(renderCallsPanel);
+  }
 }
 
 function showPanelError(id, msg) {
@@ -1362,6 +1628,9 @@ async function loadData(fresh) {
 
   setText('lastUpdated', 'Data as at: ' + new Date().toLocaleString('en-GB'));
   overlay.classList.add('hidden');
+
+  // Fire and forget — the product charts redraw themselves when it answers.
+  loadProducts(fresh);
 }
 
 document.getElementById('btnRefresh').addEventListener('click', () => loadData(true));
