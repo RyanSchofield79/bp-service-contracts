@@ -1107,11 +1107,10 @@ function renderCallsPanel(cfg) {
      month, and the same span a year earlier for the year to date. */
   let prev = null, prevLabel = '';
   if (period.isYtd) {
-    const pk = period.keys.map(k => shiftMonthKey(k, -12)).filter(k => MONTH_KEYS.includes(k));
-    if (pk.length) {
-      prev = periodStats(pk, cfg.filter);
-      prevLabel = `${monthLabel(pk[0])}–${monthLabel(pk[pk.length - 1])}`;
-    }
+    // Trimmed to the same calendar point last year, so this matches the
+    // year-on-year tiles exactly rather than quietly using a fuller span.
+    prev = { raised: fyRaisedToDate(-1, cfg.filter) };
+    prevLabel = 'the same period last FY';
   } else {
     const idx = MONTH_KEYS.indexOf(key);
     if (idx > 0) { prev = monthStats(MONTH_KEYS[idx - 1], cfg.filter); prevLabel = monthLabel(MONTH_KEYS[idx - 1]); }
