@@ -109,6 +109,52 @@
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
       .charts-row, .charts-row.thirds { grid-template-columns: 1fr; }
     }
+  
+    /* ── Rules & filters panel ────────────────────────────── */
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .doc-open-btn { width:20px; height:20px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.55); background:none; color:#fff; font-size:12px; font-weight:700; line-height:1; cursor:pointer; font-family:Georgia, "Times New Roman", serif; display:inline-flex; align-items:center; justify-content:center; padding:0; opacity:0.75; flex:none; }
+    .doc-open-btn:hover { opacity:1; background:rgba(255,255,255,0.2); }
+    .doc-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.55); display: none; align-items: flex-start; justify-content: center; padding: 40px 20px; z-index: 900; }
+    .doc-overlay.open { display: flex; }
+    .doc-modal { background:#fff; width:100%; max-width: 880px; max-height: calc(100vh - 80px); border-radius:10px; display:flex; flex-direction:column; overflow:hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+    .doc-head { background:#527F6E; color:#fff; padding:16px 22px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+    .doc-head h2 { font-size:16px; font-weight:600; }
+    .doc-head .sub { font-size:11.5px; opacity:0.75; margin-top:3px; }
+    .doc-close { background:none; border:none; color:#fff; font-size:24px; line-height:1; cursor:pointer; opacity:0.8; padding:0 2px; }
+    .doc-close:hover { opacity:1; }
+    .doc-nav { display:flex; flex-wrap:wrap; gap:6px; padding:12px 22px; border-bottom:1px solid #e5e7eb; background:#fafafa; }
+    .doc-nav a { font-size:11.5px; color:#527F6E; text-decoration:none; border:1px solid #d7e2dd; background:#fff; padding:4px 9px; border-radius:20px; }
+    .doc-nav a:hover { background:#527F6E; color:#fff; border-color:#527F6E; }
+    .doc-body { overflow-y:auto; padding: 4px 22px 22px; }
+    .doc-sec { padding-top:20px; }
+    .doc-sec h3 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#527F6E; padding-bottom:6px; border-bottom:1px solid #e5e7eb; margin-bottom:10px; }
+    .doc-sec p { font-size:13px; line-height:1.65; color:#374151; margin-bottom:8px; }
+    .doc-sec ul { margin:0 0 8px 18px; }
+    .doc-sec li { font-size:13px; line-height:1.65; color:#374151; margin-bottom:4px; }
+    .doc-sec table { width:100%; border-collapse:collapse; margin-bottom:8px; }
+    .doc-sec th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280; border-bottom:1px solid #e5e7eb; padding:6px 8px 6px 0; font-weight:600; }
+    .doc-sec td { font-size:12.5px; line-height:1.55; color:#374151; border-bottom:1px solid #f3f4f6; padding:7px 8px 7px 0; vertical-align:top; }
+    .doc-sec td:first-child { font-weight:600; color:#222; width:34%; }
+    .doc-sec code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size:11.5px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:3px; padding:1px 4px; color:#111; }
+    .doc-tech summary { cursor:pointer; font-size:12.5px; color:#6b7280; padding:4px 0; }
+    .doc-tech summary:hover { color:#527F6E; }
+    .doc-tech[open] summary { margin-bottom:6px; }
+    .doc-tag { display:inline-block; font-size:10px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; padding:2px 7px; border-radius:20px; margin-right:6px; }
+    .doc-tag-in { background:#dcfce7; color:#166534; }
+    .doc-tag-out { background:#fee2e2; color:#991b1b; }
+    .doc-warn { background:#fffbeb; border:1px solid #fde68a; border-left:3px solid #d97706; border-radius:6px; padding:10px 12px; margin-bottom:8px; }
+    .doc-warn p { margin:0; font-size:12.5px; color:#78350f; }
+    .doc-foot { border-top:1px solid #e5e7eb; background:#fafafa; padding:12px 22px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .doc-foot .meta { font-size:11.5px; color:#6b7280; }
+    .doc-foot .acts { display:flex; gap:8px; }
+    .doc-foot button, .doc-foot a.btn { font-size:12px; font-family:inherit; padding:5px 12px; border-radius:6px; border:1px solid #d1d5db; background:#fff; color:#374151; cursor:pointer; text-decoration:none; }
+    .doc-foot button:hover, .doc-foot a.btn:hover { background:#f3f4f6; }
+    @media print {
+      body > header, .container, footer, .doc-nav, .doc-close, .doc-foot .acts { display:none !important; }
+      .doc-overlay { position:static; display:block !important; padding:0; background:#fff; }
+      .doc-modal { max-width:none; max-height:none; box-shadow:none; border:none; }
+      .doc-body { overflow:visible; }
+    }
   </style>
 </head>
 <body>
@@ -118,7 +164,7 @@
 </div>
 
 <div class="header">
-  <h1>TV Windows – Service Dashboard</h1>
+  <div class="header-left"><h1>TV Windows – Service Dashboard</h1><button class="doc-open-btn" id="doc-btn" type="button" title="Rules &amp; filters" aria-label="Rules &amp; filters">i</button></div>
   <div class="header-right">
     <span class="last-updated" id="lastUpdated">–</span>
     <button class="btn-refresh" id="btnRefresh">↻ Refresh</button>
@@ -1644,5 +1690,184 @@ document.getElementById('trendScope').addEventListener('change', renderTrendsTab
 initCollapsibleCards();
 loadData(true);
 </script>
+
+<!-- ══════════ RULES & FILTERS PANEL ══════════ -->
+<div class="doc-overlay" id="doc-overlay" role="dialog" aria-modal="true" aria-labelledby="doc-title">
+  <div class="doc-modal">
+    <div class="doc-head">
+      <div>
+        <h2 id="doc-title"></h2>
+        <div class="sub" id="doc-sub"></div>
+      </div>
+      <button class="doc-close" id="doc-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="doc-nav" id="doc-nav"></div>
+    <div class="doc-body" id="doc-body"></div>
+    <div class="doc-foot">
+      <span class="meta" id="doc-meta"></span>
+      <span class="acts">
+        <button type="button" onclick="window.print()">Print / save as PDF</button>
+        <a class="btn" id="doc-repo" href="#" target="_blank" rel="noopener">View source repo</a>
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+const DASHBOARD_DOC = {
+  title: "Service — rules & filters",
+  subtitle: "Service · rschofield-bp-servicecontracts.netlify.app · repo: RyanSchofield79/bp-service-contracts",
+  version: "v1.0", reviewed: "3 Aug 2026", owner: "Ryan Schofield",
+  repo: "https://github.com/RyanSchofield79/bp-service-contracts",
+  sections: [
+    { id:"purpose", nav:"Purpose", title:"What this dashboard answers", type:"list",
+      items: [
+        "What live service contracts we are carrying, their value and the balance still due.",
+        "How many service calls are being raised each month, how many get closed, and how long they take.",
+        "What is still open — the true backlog, however old.",
+        "Whether a call is chargeable or covered under warranty."
+      ] },
+    { id:"source", nav:"Refresh", title:"Where the data comes from & when it updates", type:"table",
+      head: ["",""],
+      rows: [
+        ["Source", "Business Pilot — service contracts and service calls"],
+        ["Updates", "<strong>Live when you open the page.</strong> Contracts are held for up to 10 minutes and calls for up to 1 minute behind the scenes, because the full call history takes 8–10 seconds to pull."],
+        ["Refresh button", "Forces a fresh pull past both caches."],
+        ["How far back", "Calls from the start of the previous financial year onwards — <strong>plus every open call regardless of age</strong>, so the backlog is complete."],
+        ["If it can't reach Business Pilot", "An error is shown. There is no fallback copy."]
+      ] },
+    { id:"period", nav:"Period & dates", title:"Period & date rules", type:"list",
+      items: [
+        "A call belongs to a month by <code>dateAdded</code> — when it was raised.",
+        "<strong>There is no “date closed” field in Business Pilot.</strong> The dashboard therefore treats the <strong>last appointment date</strong> as the closing date, which is what drives “Closed in Month”, “Avg Days to Close” and “Closed Same Month”.",
+        "A call counts as closed if its status is Closed, Cancelled, Complete or Completed. Everything else counts as open.",
+        "“From Earlier Months” means calls closed this month that were raised in a previous one.",
+        "The reporting window runs from the start of last financial year to the end of the current month."
+      ] },
+    { id:"scope", nav:"In / out", title:"What's included and excluded", type:"inout",
+      included: [
+        "Contracts of type <strong>“12 – Service”</strong> that are still live.",
+        "All service calls raised in the reporting window, plus every open call however old."
+      ],
+      excluded: [
+        "<strong>Completed, cancelled and on-hold service contracts.</strong>",
+        "Non-service contracts — those belong on the operations boards."
+      ],
+      note: "A call is marked <strong>Chargeable</strong> when its contract number matches a live “12 – Service” contract, and <strong>Warranty</strong> otherwise. That is inferred, not a flag in Business Pilot." },
+    { id:"metrics", nav:"Metrics", title:"Metric definitions", type:"table",
+      head: ["Metric","Definition"],
+      rows: [
+        ["Total Contracts","Live service contracts after excluding completed, cancelled and on hold"],
+        ["Total Net Value","Σ <code>confirmedNetSaleValue</code>"],
+        ["Total Balance Due","Σ outstanding customer balance"],
+        ["Avg Contract Value","Net value ÷ contract count"],
+        ["Calls Raised","Calls with a <code>dateAdded</code> in the month"],
+        ["Closed / Still Open","By status — closed, cancelled, complete or completed count as closed"],
+        ["Monthly Average","Average calls raised per month across the window"],
+        ["Closed in Month","Calls whose last appointment fell in that month"],
+        ["From Earlier Months","Of those, the ones raised in an earlier month"],
+        ["Avg Days to Close","Last appointment date minus date raised"],
+        ["Closed Same Month","Raised and closed within the same calendar month"],
+        ["Chargeable / Warranty","Contract number matches a live service contract, or does not"]
+      ] },
+    { id:"fields", nav:"Field mapping", title:"Business Pilot field mapping", type:"table",
+      head: ["On the dashboard","Business Pilot field"],
+      rows: [
+        ["Contract","<code>contract.contractNumber</code>"],
+        ["Customer","<code>lead.contact.contactName</code>, then company name"],
+        ["Product type","<code>lead.productType1</code>, then 2, then 3"],
+        ["Net value / Balance","<code>confirmedNetSaleValue</code> / <code>balance</code>"],
+        ["Call raised","<code>serviceCall.dateAdded</code>"],
+        ["Call closed","<code>lastAppointmentDate</code> <em>(stand-in — see Watch-outs)</em>"],
+        ["Engineer","<code>lastAppointmentFor</code>"],
+        ["Call type","<code>callType</code>"],
+        ["Status","<code>status</code>"]
+      ] },
+    { id:"watch", nav:"Watch-outs", title:"Watch-outs & known limits", type:"warn",
+      items: [
+        "<strong>“Closed date” is really the last appointment date.</strong> Business Pilot does not expose when a call was closed, so every closure metric — days to close, closed in month, closed same month — is built on the last appointment instead. A call closed on the phone with no appointment, or closed weeks after the final visit, will be dated wrongly. Treat these as indicative.",
+        "<strong>Chargeable vs Warranty is inferred.</strong> It comes from matching the call's contract number against live service contracts, not from a billing flag. A closed or expired service contract makes its calls look like warranty work.",
+        "<strong>“Closed” includes cancelled.</strong> A call cancelled because it was raised in error counts the same as one genuinely resolved, which flatters closure rates.",
+        "<strong>Open calls ignore the date window.</strong> Every open call is included however old, so the open backlog and the monthly figures cover different populations by design.",
+        "<strong>This board uses the newer Business Pilot API</strong> (<code>open-api</code>) rather than the one the other boards use, and that API ignores date filters — so it pulls the whole history each time. If it is ever slow or times out, that is why.",
+        "<strong>Short caches.</strong> Contracts up to 10 minutes old, calls up to 1 minute. Press Refresh after making changes in Business Pilot."
+      ] },
+    { id:"tech", nav:"Technical", title:"Technical reference", type:"tech",
+      summary: "Endpoints, files and schedule — for maintenance, not for reading the numbers",
+      head: ["Item","Detail"],
+      rows: [
+        ["API","<code>open-api.businesspilot.co.uk</code> · <code>X-Api-Key</code> header"],
+        ["Endpoints","<code>POST /api/Contracts/find</code> (<code>contractType: '12 - Service'</code>) and the service-calls endpoint"],
+        ["Functions","<code>contracts.js</code>, <code>service-calls.js</code>, <code>call-products.js</code>"],
+        ["Closed statuses","<code>CLOSED_STATUSES</code> = closed, cancelled, canceled, complete, completed"],
+        ["Chargeable type","<code>CHARGEABLE_CONTRACT_TYPE</code> env var, default <code>12 - Service</code>"],
+        ["Caches","Contracts 10 min, calls 1 min; <code>?fresh=1</code> bypasses"],
+        ["Fallback","If the type filter returns nothing, a full scan filtered on “service” in pipeline or lead type"]
+      ] }
+  ]
+};
+
+/* ── Renderer — identical on every dashboard, do not edit per board ── */
+(function () {
+  var D = DASHBOARD_DOC;
+  document.getElementById('doc-title').innerHTML = D.title;
+  document.getElementById('doc-sub').innerHTML = D.subtitle;
+  document.getElementById('doc-meta').innerHTML = D.version + ' · last reviewed ' + D.reviewed + ' · owner ' + D.owner;
+  document.getElementById('doc-repo').href = D.repo;
+
+  var nav = document.getElementById('doc-nav');
+  var body = document.getElementById('doc-body');
+
+  D.sections.forEach(function (s) {
+    var a = document.createElement('a');
+    a.href = '#' + s.id; a.textContent = s.nav;
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      document.getElementById('sec-' + s.id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    nav.appendChild(a);
+
+    var sec = document.createElement('div');
+    sec.className = 'doc-sec'; sec.id = 'sec-' + s.id;
+    var html = '<h3>' + s.title + '</h3>';
+
+    if (s.type === 'text') {
+      html += '<p>' + s.body + '</p>';
+    } else if (s.type === 'list') {
+      html += '<ul>' + s.items.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+    } else if (s.type === 'table') {
+      var hasHead = s.head.some(function (h) { return h && h.length; });
+      html += '<table>' +
+              (hasHead ? '<thead><tr>' + s.head.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead>' : '') +
+              '<tbody>' +
+              s.rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('') +
+              '</tbody></table>';
+    } else if (s.type === 'inout') {
+      html += '<p><span class="doc-tag doc-tag-in">Included</span></p><ul>' +
+              s.included.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+      html += '<p><span class="doc-tag doc-tag-out">Excluded</span></p><ul>' +
+              s.excluded.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+      if (s.note) html += '<p><em>' + s.note + '</em></p>';
+    } else if (s.type === 'tech') {
+      html += '<details class="doc-tech"><summary>' + s.summary + '</summary><table><tbody>' +
+              s.rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('') +
+              '</tbody></table></details>';
+    } else if (s.type === 'warn') {
+      html += s.items.map(function (i) { return '<div class="doc-warn"><p>' + i + '</p></div>'; }).join('');
+    }
+
+    sec.innerHTML = html;
+    body.appendChild(sec);
+  });
+
+  var overlay = document.getElementById('doc-overlay');
+  function openDoc() { overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeDoc() { overlay.classList.remove('open'); document.body.style.overflow = ''; }
+  document.getElementById('doc-btn').addEventListener('click', openDoc);
+  document.getElementById('doc-close').addEventListener('click', closeDoc);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeDoc(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDoc(); });
+})();
+</script>\n
 </body>
 </html>
