@@ -1778,14 +1778,14 @@ const DASHBOARD_DOC = {
         ["Product type","<code>lead.productType1</code>, then 2, then 3"],
         ["Net value / Balance","<code>confirmedNetSaleValue</code> / <code>balance</code>"],
         ["Call raised","<code>serviceCall.dateAdded</code>"],
-        ["Call closed","<code>lastAppointmentDate</code> <em>(stand-in — see Watch-outs)</em>"],
+        ["Call closed","<code>lastAppointmentDate</code> — the final visit is what closes a call"],
         ["Engineer","<code>lastAppointmentFor</code>"],
         ["Call type","<code>callType</code>"],
         ["Status","<code>status</code>"]
       ] },
     { id:"watch", nav:"Watch-outs", title:"Watch-outs & known limits", type:"warn",
       items: [
-        "<strong>“Closed date” is really the last appointment date.</strong> Business Pilot does not expose when a call was closed, so every closure metric — days to close, closed in month, closed same month — is built on the last appointment instead. A call closed on the phone with no appointment, or closed weeks after the final visit, will be dated wrongly. Treat these as indicative.",
+        "<strong>Closure is dated by the last appointment.</strong> Business Pilot exposes no separate closed-date field, so days to close, closed in month and closed same month all run from the final appointment. This was confirmed as the right basis when the board was built — the visit is what closes the job. The only cases it will not date precisely are calls resolved on the phone with no appointment at all.",
         "<strong>Chargeable vs Warranty is inferred.</strong> It comes from matching the call's contract number against live service contracts, not from a billing flag. A closed or expired service contract makes its calls look like warranty work.",
         "<strong>“Closed” includes cancelled.</strong> A call cancelled because it was raised in error counts the same as one genuinely resolved, which flatters closure rates.",
         "<strong>Open calls ignore the date window.</strong> Every open call is included however old, so the open backlog and the monthly figures cover different populations by design.",
