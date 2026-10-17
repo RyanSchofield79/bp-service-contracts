@@ -11,6 +11,11 @@
 //   • IMPORTANT: /ServiceCalls/find currently IGNORES dateAddedAfter /
 //     dateAddedBefore and returns the full history, so the date window is
 //     always re-applied here in code.
+//   • IMPORTANT (tested 16 Oct 2026): an UNFILTERED find now makes BP itself
+//     time out (HTTP 500 after ~4 min). The status filter does work and is
+//     fast, so the history is requested ONE STATUS AT A TIME, in parallel:
+//     Closed (~56k calls) ~10-12s, Booked In / Waiting Date / Provisional 3-6s.
+//     dateUpdated is never populated, so dateUpdatedAfter is no use either.
 //
 // Chargeable vs warranty:
 //   A service call is CHARGEABLE when its contract is of the service-contract
@@ -35,9 +40,16 @@ const CHARGEABLE_TYPE = process.env.CHARGEABLE_CONTRACT_TYPE || '12 - Service';
 // Statuses that count as "closed". Everything else counts as open.
 const CLOSED_STATUSES = ['closed', 'cancelled', 'canceled', 'complete', 'completed'];
 
+// Every status a service call can have in BP. The history is fetched one status
+// at a time (see above), so a call with a status NOT in this list would be
+// missed: if BP adds a status, add it here or set SERVICE_CALL_STATUSES
+// (comma-separated) on the site. ?debug=1 shows the statuses actually returned.
+const STATUSES = (process.env.SERVICE_CALL_STATUSES || 'Closed,Booked In,Waiting Date,Provisional')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
 // Warm-lambda cache. Kept short so a page load returns current data, but not
-// zero: pulling the whole call history takes 8-10s and Netlify allows 10s, so
-// back-to-back requests must not each pay that cost. ?fresh=1 bypasses it.
+// zero: pulling the whole call history takes ~10-12s, so back-to-back
+// requests must not each pay that cost. ?fresh=1 bypasses it.
 const TTL_MS = 60 * 1000;
 const cache = { calls: null, contracts: null };
 let BYPASS = false;
@@ -113,8 +125,15 @@ function tally(list, fn, limit) {
 async function allServiceCalls(apiKey) {
   const hit = cached('calls');
   if (hit) return hit;
-  const r = unwrap(await apiPost(apiKey, '/ServiceCalls/find', {}));
-  return store('calls', { items: r.items, itemCount: r.itemCount });
+  // One request per status, in parallel. If any fails the whole load fails,
+  // so the dashboard never shows a history with a status silently missing.
+  const slices = await Promise.all(STATUSES.map(status =>
+    apiPost(apiKey, '/ServiceCalls/find', { status }).then(unwrap)));
+  // status is a partial match in BP, so de-duplicate by id
+  const byId = new Map();
+  slices.forEach(s => s.items.forEach(c => byId.set(c.id != null ? c.id : JSON.stringify(c), c)));
+  const items = [...byId.values()];
+  return store('calls', { items, itemCount: items.length });
 }
 
 // ── Contracts ────────────────────────────────────────────────────────────────
@@ -195,7 +214,7 @@ exports.handler = async (event) => {
     // Raw shapes, so we can see exactly which fields BP exposes on a service
     // call and on a contract without guessing from the mapped output.
     if (debug === 'raw') {
-      const raw = unwrap(await apiPost(API_KEY, '/ServiceCalls/find', {}));
+      const raw = unwrap(await apiPost(API_KEY, '/ServiceCalls/find', { status: 'Booked In' }));   // small slice: unfiltered now times out
       const one = raw.items[0] || {};
       const filt = unwrap(await apiPost(API_KEY, '/Contracts/find', { contractType: CHARGEABLE_TYPE }));
       const c = filt.items[0] || {};
