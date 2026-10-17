@@ -1731,8 +1731,9 @@ const DASHBOARD_DOC = {
       head: ["",""],
       rows: [
         ["Source", "Business Pilot — service contracts and service calls"],
-        ["Updates", "<strong>Live when you open the page.</strong> Contracts are held for up to 10 minutes and calls for up to 1 minute behind the scenes, because the full call history takes 8–10 seconds to pull."],
-        ["Refresh button", "Forces a fresh pull past both caches."],
+        ["Updates", "<strong>Live when you open the page.</strong> Contracts are held for up to 10 minutes and calls for up to 1 minute behind the scenes, because the full call history takes around 10–12 seconds to pull."],
+        ["Product charts", "<strong>Fill in a little after the rest of the page — this is normal.</strong> Product type isn't on a service call, so it is looked up from the whole contract book (around 15–20 seconds). The dashboard shows everything else first and the product charts appear when that lookup finishes. The result is then held for 30 minutes, so later loads are quicker."],
+        ["Refresh button", "Forces a fresh pull past all the caches."],
         ["How far back", "Calls from the start of the previous financial year onwards — <strong>plus every open call regardless of age</strong>, so the backlog is complete."],
         ["If it can't reach Business Pilot", "An error is shown. There is no fallback copy."]
       ] },
@@ -1789,19 +1790,21 @@ const DASHBOARD_DOC = {
         "<strong>Chargeable vs Warranty is inferred.</strong> It comes from matching the call's contract number against live service contracts, not from a billing flag. A closed or expired service contract makes its calls look like warranty work.",
         "<strong>“Closed” includes cancelled.</strong> A call cancelled because it was raised in error counts the same as one genuinely resolved, which flatters closure rates.",
         "<strong>Open calls ignore the date window.</strong> Every open call is included however old, so the open backlog and the monthly figures cover different populations by design.",
-        "<strong>This board uses the newer Business Pilot API</strong> (<code>open-api</code>) rather than the one the other boards use, and that API ignores date filters — so it pulls the whole history each time. If it is ever slow or times out, that is why.",
-        "<strong>Short caches.</strong> Contracts up to 10 minutes old, calls up to 1 minute. Press Refresh after making changes in Business Pilot."
+        "<strong>This board uses the newer Business Pilot API</strong> (<code>open-api</code>) rather than the one the other boards use, and that API ignores date filters — so it pulls the whole call history each time, one status at a time (asking for everything at once makes Business Pilot time out). If it is ever slow or times out, that is why.",
+        "<strong>Product charts load last.</strong> They wait on a lookup of the whole contract book, so they can appear 15–20 seconds after the rest of the page. If that lookup fails, only the product charts show an error — every other figure is unaffected.",
+        "<strong>Short caches.</strong> Contracts up to 10 minutes old, calls up to 1 minute, product types up to 30 minutes. Press Refresh after making changes in Business Pilot."
       ] },
     { id:"tech", nav:"Technical", title:"Technical reference", type:"tech",
       summary: "Endpoints, files and schedule — for maintenance, not for reading the numbers",
       head: ["Item","Detail"],
       rows: [
         ["API","<code>open-api.businesspilot.co.uk</code> · <code>X-Api-Key</code> header"],
-        ["Endpoints","<code>POST /api/Contracts/find</code> (<code>contractType: '12 - Service'</code>) and the service-calls endpoint"],
+        ["Endpoints","<code>POST /api/Contracts/find</code> (<code>contractType: '12 - Service'</code>; unfiltered for the product lookup) and <code>POST /api/ServiceCalls/find</code> sent once per status"],
         ["Functions","<code>contracts.js</code>, <code>service-calls.js</code>, <code>call-products.js</code>"],
+        ["Call statuses fetched","<code>SERVICE_CALL_STATUSES</code> env var, default Closed, Booked In, Waiting Date, Provisional — <strong>add any new Business Pilot status here</strong> or its calls won't appear"],
         ["Closed statuses","<code>CLOSED_STATUSES</code> = closed, cancelled, canceled, complete, completed"],
         ["Chargeable type","<code>CHARGEABLE_CONTRACT_TYPE</code> env var, default <code>12 - Service</code>"],
-        ["Caches","Contracts 10 min, calls 1 min; <code>?fresh=1</code> bypasses"],
+        ["Caches","Contracts 10 min, calls 1 min, product types 30 min; <code>?fresh=1</code> bypasses"],
         ["Fallback","If the type filter returns nothing, a full scan filtered on “service” in pipeline or lead type"]
       ] }
   ]
