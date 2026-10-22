@@ -38,15 +38,17 @@
     .kpi-card.red    { border-left-color: #dc3545; }
     .kpi-card.teal   { border-left-color: #527F6E; }
     .kpi-card.grey   { border-left-color: #6c757d; }
-    .kpi-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.6px; margin-bottom: 6px; }
-    .kpi-label .kpi-unit { font-weight: 600; text-transform: none; letter-spacing: 0; color: #b3bdb9; margin-left: 6px; }
+    .kpi-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #6b7570; letter-spacing: 0.6px; margin-bottom: 6px; }
+    .kpi-label .kpi-unit { font-weight: 600; text-transform: none; letter-spacing: 0; color: #8a958f; margin-left: 6px; }
     .kpi-value { font-size: 2rem; font-weight: 700; color: #1a1a1a; line-height: 1.1; }
     .kpi-value.up   { color: #c0392b; }
     .kpi-value.down { color: #1e8449; }
-    .kpi-sub   { font-size: 0.78rem; color: #999; margin-top: 4px; }
+    /* Sub-lines carry real figures now that the card count is down, so they
+       are sized and coloured to be read (#5f6b67 is ~5.6:1 on white). */
+    .kpi-sub   { font-size: 0.875rem; line-height: 1.4; color: #5f6b67; margin-top: 5px; }
     .kpi-sub.up   { color: #c0392b; font-weight: 600; }
     .kpi-sub.down { color: #1e7e34; font-weight: 600; }
-    .kpi-chip { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 7px; background: #eef1f0; color: #7a8b85; }
+    .kpi-chip { display: inline-block; font-size: 0.8rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 7px; background: #eef1f0; color: #7a8b85; }
     .kpi-chip.up   { background: #fdecea; color: #c0392b; }
     .kpi-chip.down { background: #e8f6ec; color: #1e8449; }
     .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
@@ -430,6 +432,7 @@
         <div class="kpi-label" id="acMixBLabel">Remedial</div>
         <div class="kpi-value" id="acMixB">–</div>
         <div class="kpi-sub" id="acMixBSub">–</div>
+        <div class="kpi-sub" id="acMixOther"></div>
       </div>
       <div class="kpi-card green" id="acYoyChangeCard">
         <div class="kpi-label">Year on Year <span class="kpi-unit" id="acYoyUnit"></span></div>
@@ -1286,6 +1289,21 @@ function renderAcMix(s) {
     setText('acMix' + k + 'Sub', `${pct(n, s.raised)}% of calls raised`);
     document.getElementById('acMix' + k + 'Card').className = 'kpi-card ' + colour;
   });
+
+  /* Service + Remedial is not the whole volume (Audit, Pre-Install, ...), so
+     say what makes up the rest rather than leave the two shares short of 100%. */
+  const others = {};
+  if (!typeSet) s.calls.forEach(c => {
+    if (c.callType !== 'Service' && c.callType !== 'Remedial') {
+      const k = c.callType || 'Unknown'; others[k] = (others[k] || 0) + 1;
+    }
+  });
+  const otherN = Object.values(others).reduce((a, b) => a + b, 0);
+  const top = Object.entries(others).sort((a, b) => b[1] - a[1]).slice(0, 2)
+    .map(([t, n]) => `${t} ${num(n)}`).join(', ');
+  setText('acMixOther', otherN
+    ? `+ ${num(otherN)} other types (${pct(otherN, s.raised)}%): ${top}${Object.keys(others).length > 2 ? ', …' : ''}`
+    : '');
 }
 
 /* ── year-on-year line on All Calls ──────────────────────────────────────────
