@@ -1653,7 +1653,7 @@ loadData(true);
 const DASHBOARD_DOC = {
   title: "Service — rules & filters",
   subtitle: "Service · rschofield-bp-servicecontracts.netlify.app · repo: RyanSchofield79/bp-service-contracts",
-  version: "v1.1", reviewed: "22 Oct 2026", owner: "Ryan Schofield",
+  version: "v1.2", reviewed: "10 Nov 2026", owner: "Ryan Schofield",
   repo: "https://github.com/RyanSchofield79/bp-service-contracts",
   sections: [
     { id:"purpose", nav:"Purpose", title:"What this dashboard answers", type:"list",
@@ -1662,6 +1662,18 @@ const DASHBOARD_DOC = {
         "How many service calls are being raised each month, how many get closed, and how long they take.",
         "What is still open — the true backlog, however old.",
         "Whether a call is chargeable or covered under warranty."
+      ] },
+    { id:"screen", nav:"Reading the screen", title:"Reading the screen — the four tabs", type:"table",
+      head: ["On screen","What it shows / what to do"],
+      rows: [
+        ["Service Contracts tab","Live “12 – Service” contracts: count, net value, balance due and average value, then charts by contract status and product type. The table lists each contract with its status date, age since then and number of calls. <strong>Click a contract</strong> to see its service calls."],
+        ["Service Calls tab","<strong>Call type “Service” only.</strong> Pick a month: Activity cards for that month, the Open backlog (every open Service call, any month), and the Warranty / Chargeable mix of the month's calls. Then charts by status, engineer (Booked For), product type and open-call age, and two tables: the month's calls and all open calls."],
+        ["All Calls tab","The same layout for <strong>every call type</strong> (Service, Remedial, Audit, Pre-Install …). Filter by Month, Call Type and Booked For. Adds Service / Remedial counts, Year on Year and the last-FY monthly average."],
+        ["Trends &amp; YTD tab","Choose Service only or All call types. Financial-year-to-date cards (since 1 April) with a chip against last FY, this month against the same month last year, charts of calls raised by month (warranty vs chargeable) and raised vs closed, and a month-by-month table."],
+        ["“Current month” note","When the selected month is this month, figures are month to date."],
+        ["Open Calls by Age","Open calls banded 0–7, 8–30, 31–90 and 91+ days since raised."],
+        ["Table headings","Click the chevron in a table's heading to collapse it."],
+        ["↻ Refresh","Pulls fresh data past all the caches. The product charts fill in last — see below."]
       ] },
     { id:"source", nav:"Refresh", title:"Where the data comes from & when it updates", type:"table",
       head: ["",""],
@@ -1679,7 +1691,8 @@ const DASHBOARD_DOC = {
         "<strong>There is no “date closed” field in Business Pilot.</strong> The dashboard therefore treats the <strong>last appointment date</strong> as the closing date, which is what drives “Closed in Month” and “Avg Days to Close”.",
         "A call counts as closed if its status is Closed, Cancelled, Complete or Completed. Everything else counts as open.",
         "Two kinds of “closed” appear and are kept apart: <strong>Closed in Month</strong> counts calls closed <em>during</em> the month, whenever they were raised; the <strong>“now closed”</strong> line under Calls Raised counts what has since happened to the calls raised <em>in</em> the month.",
-        "The reporting window runs from the start of last financial year to the end of the current month."
+        "The reporting window runs from the start of last financial year to the end of the current month.",
+        "<strong>Financial year here means 1 April to 31 March</strong> (calendar dates). Hit Rate uses the company's 52/53-week year and Marketing a 364-day sales year, so “year to date” can cover slightly different days on those boards."
       ] },
     { id:"scope", nav:"In / out", title:"What's included and excluded", type:"inout",
       included: [
@@ -1699,7 +1712,7 @@ const DASHBOARD_DOC = {
         ["Total Balance Due","Σ outstanding customer balance"],
         ["Avg Contract Value","Net value ÷ contract count"],
         ["Calls Raised","Calls with a <code>dateAdded</code> in the month. Underneath: the change on the previous month; how many of them are <strong>now closed / still open</strong> (by status); and the FY average raised per month"],
-        ["Closed in Month","Calls whose last appointment fell in that month, whenever raised. Underneath: how many were raised in earlier months"],
+        ["Closed in Month","Calls now at a closed status whose last appointment fell in that month, whenever raised. Underneath: how many were raised in earlier months"],
         ["Net Backlog Change","Calls raised minus calls closed in the month. A positive number means the backlog grew"],
         ["Avg Days to Close","Last appointment date minus date raised, for the calls closed in the month"],
         ["Total Open","Every open call, any month. Underneath: how many were raised in the selected month"],
@@ -1729,9 +1742,10 @@ const DASHBOARD_DOC = {
       items: [
         "<strong>Closure is dated by the last appointment.</strong> Business Pilot exposes no separate closed-date field, so days to close and closed in month both run from the final appointment. This was confirmed as the right basis when the board was built — the visit is what closes the job. The only cases it will not date precisely are calls resolved on the phone with no appointment at all.",
         "<strong>Chargeable vs Warranty is inferred.</strong> It comes from matching the call's contract number against live service contracts, not from a billing flag. A closed or expired service contract makes its calls look like warranty work.",
-        "<strong>“Closed” includes cancelled.</strong> A call cancelled because it was raised in error counts the same as one genuinely resolved, which flatters closure rates.",
+        "<strong>“Closed” would include cancelled.</strong> Cancelled, Complete and Completed all count as closed, so a call cancelled because it was raised in error would count the same as one genuinely resolved. With the default fetch list (below) cancelled calls are not loaded at all, so they currently appear nowhere.",
         "<strong>Open calls ignore the date window.</strong> Every open call is included however old, so the open backlog and the monthly figures cover different populations by design.",
-        "<strong>This board uses the newer Business Pilot API</strong> (<code>open-api</code>) rather than the one the other boards use, and that API ignores date filters — so it pulls the whole call history each time, one status at a time (asking for everything at once makes Business Pilot time out). If it is ever slow or times out, that is why.",
+        "<strong>The service-call list can't be filtered by date</strong> on the Business Pilot API (<code>open-api</code>), so the board pulls the whole call history each time, one status at a time (asking for everything at once makes Business Pilot time out). If it is ever slow or times out, that is why.",
+        "<strong>Only the call statuses on the fetch list appear.</strong> Calls are fetched one status at a time from a fixed list (by default Closed, Booked In, Waiting Date, Provisional). A call at any other status, including a new status added in Business Pilot, does not appear anywhere on the board until it is added to the list.",
         "<strong>Product charts load last.</strong> They wait on a lookup of the whole contract book, so they can appear 15–20 seconds after the rest of the page. If that lookup fails, only the product charts show an error — every other figure is unaffected.",
         "<strong>Short caches.</strong> Contracts up to 10 minutes old, calls up to 1 minute, product types up to 30 minutes. Press Refresh after making changes in Business Pilot."
       ] },
